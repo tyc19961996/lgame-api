@@ -8,6 +8,7 @@
  *   4. await LGameAPI.getTopList()  查询排行榜
  *   5. await LGameAPI.saveGameData() 保存游戏数据
  *   6. await LGameAPI.loadGameData() 加载游戏数据
+ *   7. await LGameAPI.getRemoteConfig() 获取远程配置
  */
 import type {
   ApiResponse,
@@ -20,6 +21,7 @@ import type {
   SaveGameDataParams,
   SaveGameDataResponseData,
   LoadGameDataResponseData,
+  RemoteConfigResponseData,
   UpdateProfileParams,
   UpdateProfileResponseData,
   PercentileResponseData,
@@ -133,6 +135,26 @@ export class LGameAPI {
     }
 
     return response;
+  }
+
+  // ==================== 远程配置 ====================
+
+  /**
+   * 获取远程配置
+   * @param gameKey 游戏标识
+   * @param version 当前客户端版本号，如 1.2.3
+   * @returns config 为后台按游戏、平台、版本、时间和优先级合并后的 JSON 对象
+   */
+  public static async getRemoteConfig<TConfig extends object = Record<string, any>>(
+    gameKey: string,
+    version: string
+  ): Promise<ApiResponse<RemoteConfigResponseData<TConfig>>> {
+    return httpRequest<RemoteConfigResponseData<TConfig>>(
+      'remote-config',
+      'GET',
+      { game_key: gameKey, version },
+      this._token
+    );
   }
 
   // ==================== 排行榜 ====================

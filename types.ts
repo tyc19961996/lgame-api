@@ -106,6 +106,23 @@ export interface LoadGameDataResponseData {
   updated_at: string | null;
 }
 
+/** 远程配置命中的规则（仅调试模式可能返回） */
+export interface RemoteConfigMatchedRule {
+  id: number;
+  name: string;
+  priority: number;
+  platform: string;
+}
+
+/** 远程配置响应 */
+export interface RemoteConfigResponseData<TConfig extends object = Record<string, any>> {
+  game_key: string;
+  platform: string;
+  version: string;
+  config: TConfig;
+  matched_rules?: RemoteConfigMatchedRule[];
+}
+
 /** 更新玩家资料参数 */
 export interface UpdateProfileParams {
   game_key: string;
