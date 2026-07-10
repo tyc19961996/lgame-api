@@ -22,6 +22,13 @@ import type {
   SaveGameDataResponseData,
   LoadGameDataResponseData,
   RemoteConfigResponseData,
+  CreateInviteParams,
+  CreateInviteResponseData,
+  AcceptInviteResponseData,
+  ReportPlayerEventParams,
+  ReportPlayerEventResponseData,
+  InviteProgressResponseData,
+  ClaimInviteRewardResponseData,
   UpdateProfileParams,
   UpdateProfileResponseData,
   PercentileResponseData,
@@ -153,6 +160,76 @@ export class LGameAPI {
       'remote-config',
       'GET',
       { game_key: gameKey, version },
+      this._token
+    );
+  }
+
+  // ==================== 邀请任务 ====================
+
+  /**
+   * 创建邀请分享码
+   * @param params 创建参数（game_key 和 task_key 必填）
+   */
+  public static async createInvite(params: CreateInviteParams): Promise<ApiResponse<CreateInviteResponseData>> {
+    return httpRequest<CreateInviteResponseData>(
+      'invite/create',
+      'POST',
+      params as unknown as Record<string, any>,
+      this._token
+    );
+  }
+
+  /**
+   * 接受邀请
+   * @param gameKey 游戏标识
+   * @param inviteCode 启动参数中的 invite_code
+   */
+  public static async acceptInvite(gameKey: string, inviteCode: string): Promise<ApiResponse<AcceptInviteResponseData>> {
+    return httpRequest<AcceptInviteResponseData>(
+      'invite/accept',
+      'POST',
+      { game_key: gameKey, invite_code: inviteCode },
+      this._token
+    );
+  }
+
+  /**
+   * 上报玩家事件，由服务端判断是否满足邀请任务条件
+   * @param params 事件参数（game_key、event_key 必填）
+   */
+  public static async reportPlayerEvent(params: ReportPlayerEventParams): Promise<ApiResponse<ReportPlayerEventResponseData>> {
+    return httpRequest<ReportPlayerEventResponseData>(
+      'player-event/report',
+      'POST',
+      params as unknown as Record<string, any>,
+      this._token
+    );
+  }
+
+  /**
+   * 查询邀请任务进度
+   * @param gameKey 游戏标识
+   * @param taskKey 邀请任务标识
+   */
+  public static async getInviteProgress(gameKey: string, taskKey: string): Promise<ApiResponse<InviteProgressResponseData>> {
+    return httpRequest<InviteProgressResponseData>(
+      'invite/progress',
+      'GET',
+      { game_key: gameKey, task_key: taskKey },
+      this._token
+    );
+  }
+
+  /**
+   * 领取邀请任务奖励
+   * @param gameKey 游戏标识
+   * @param taskKey 邀请任务标识
+   */
+  public static async claimInviteReward(gameKey: string, taskKey: string): Promise<ApiResponse<ClaimInviteRewardResponseData>> {
+    return httpRequest<ClaimInviteRewardResponseData>(
+      'invite/claim',
+      'POST',
+      { game_key: gameKey, task_key: taskKey },
       this._token
     );
   }

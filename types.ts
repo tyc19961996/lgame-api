@@ -123,6 +123,53 @@ export interface RemoteConfigResponseData<TConfig extends object = Record<string
   matched_rules?: RemoteConfigMatchedRule[];
 }
 
+/** 创建邀请参数 */
+export interface CreateInviteParams {
+  game_key: string;
+  task_key: string;
+}
+
+/** 创建邀请响应 */
+export interface CreateInviteResponseData {
+  invite_code: string;
+  share_query: string;
+}
+
+/** 接受邀请响应 */
+export interface AcceptInviteResponseData {
+  accepted: boolean;
+  reason?: 'already_accepted';
+  task_key: string;
+}
+
+/** 玩家事件上报参数 */
+export interface ReportPlayerEventParams {
+  game_key: string;
+  event_key: string;
+  event_data?: Record<string, any>;
+}
+
+/** 玩家事件上报响应 */
+export interface ReportPlayerEventResponseData {
+  reported: boolean;
+}
+
+/** 邀请任务进度响应 */
+export interface InviteProgressResponseData {
+  task_key: string;
+  target_count: number;
+  current_count: number;
+  completed: boolean;
+  reward_claimed: boolean;
+  reward: Record<string, any>;
+}
+
+/** 邀请任务领奖响应 */
+export interface ClaimInviteRewardResponseData {
+  claimed: boolean;
+  reward: Record<string, any>;
+}
+
 /** 更新玩家资料参数 */
 export interface UpdateProfileParams {
   game_key: string;
