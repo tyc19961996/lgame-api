@@ -170,6 +170,45 @@ export interface ClaimInviteRewardResponseData {
   reward: Record<string, any>;
 }
 
+/** 支付宝广告奖励条目 */
+export interface AliAdRewardItem {
+  id: number;
+  game_key: string;
+  platform: 'ali';
+  openid: string;
+  user_id: string | null;
+  biz_id: string;
+  space_code: string;
+  reward_number: string;
+  reward_amount: string | null;
+  task_type_code: string | null;
+  apply_time: string | null;
+  finish_time: string | null;
+  ad_id: string | null;
+  merchant_name: string | null;
+  ad_merchant_logo: string | null;
+  task_title: string | null;
+  sub_task_title: string | null;
+  task_description: string | null;
+  claimed: boolean;
+  claimed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** 支付宝广告待领取奖励响应 */
+export interface AliAdRewardPendingResponseData {
+  has_unclaimed: boolean;
+  count: number;
+  rewards: AliAdRewardItem[];
+}
+
+/** 支付宝广告领奖响应 */
+export interface ClaimAliAdRewardResponseData {
+  claimed_count: number;
+  rewards: AliAdRewardItem[];
+}
+
 /** 更新玩家资料参数 */
 export interface UpdateProfileParams {
   game_key: string;

@@ -29,6 +29,8 @@ import type {
   ReportPlayerEventResponseData,
   InviteProgressResponseData,
   ClaimInviteRewardResponseData,
+  AliAdRewardPendingResponseData,
+  ClaimAliAdRewardResponseData,
   UpdateProfileParams,
   UpdateProfileResponseData,
   PercentileResponseData,
@@ -230,6 +232,34 @@ export class LGameAPI {
       'invite/claim',
       'POST',
       { game_key: gameKey, task_key: taskKey },
+      this._token
+    );
+  }
+
+  // ==================== 支付宝广告奖励 ====================
+
+  /**
+   * 查询支付宝广告是否有未领取奖励
+   * @param gameKey 游戏标识
+   */
+  public static async getAliAdRewardPending(gameKey: string): Promise<ApiResponse<AliAdRewardPendingResponseData>> {
+    return httpRequest<AliAdRewardPendingResponseData>(
+      'ali-ad/reward/pending',
+      'GET',
+      { game_key: gameKey },
+      this._token
+    );
+  }
+
+  /**
+   * 领取支付宝广告奖励
+   * @param gameKey 游戏标识
+   */
+  public static async claimAliAdReward(gameKey: string): Promise<ApiResponse<ClaimAliAdRewardResponseData>> {
+    return httpRequest<ClaimAliAdRewardResponseData>(
+      'ali-ad/reward/claim',
+      'POST',
+      { game_key: gameKey },
       this._token
     );
   }

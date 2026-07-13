@@ -2,14 +2,14 @@
 
 ## 概述
 
-小游戏启动时调用平台 `login()` 获取临时 `code`，再用 `code` 换取 `openid` 和 JWT 令牌。后续所有接口需携带 JWT 令牌。
+小游戏启动时调用平台登录接口获取临时 `code`，再用 `code` 换取 `openid` 和 JWT 令牌。后续所有接口需携带 JWT 令牌。
 
 ## 登录流程
 
 ```
 小游戏启动
   │
-  ├─ wx.login() / ks.login() / tt.login()
+  ├─ wx.login() / ks.login() / tt.login() / my.getAuthCode() / bl.login()
   │    → 获取 code（一次性，5分钟有效）
   │
   ├─ GET /api/v1/getOpenId?appid=xxx&platform=wechat&code=yyy
@@ -37,10 +37,10 @@
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | appid | string | 是 | 小程序 AppID |
-| platform | string | 是 | 平台标识：`wechat` / `ks` / `bytedance` |
+| platform | string | 是 | 平台标识：`wechat` / `ks` / `bytedance` / `ali` / `bilibili` |
 | code | string | 是 | 平台 login() 返回的登录凭证 |
 
-> `platform` 支持别名自动转换：`wx`/`微信` → `wechat`，`快手` → `ks`，`抖音`/`tt` → `bytedance`
+> `platform` 支持别名自动转换：`wx`/`微信` → `wechat`，`快手` → `ks`，`抖音`/`tt` → `bytedance`，`支付宝`/`alipay` → `ali`，`B站`/`bl` → `bilibili`
 
 **成功响应：**
 
@@ -91,6 +91,20 @@ if (res.code === 0) {
 } else {
   console.error('登录失败:', res.message);
 }
+```
+
+支付宝小游戏同样使用 `LGameAPI.login()`，SDK 内部会调用 `my.getAuthCode({ scopes: 'auth_base' })`：
+
+```typescript
+LGameAPI.appid = '202100xxxx';
+const res = await LGameAPI.login();
+```
+
+哔哩哔哩小游戏同样使用 `LGameAPI.login()`，SDK 内部会调用 `bl.login()`。当前封装按非虚拟小游戏处理，不传 `vAppId`：
+
+```typescript
+LGameAPI.appid = 'bili_xxxx';
+const res = await LGameAPI.login();
 ```
 
 ### 原生请求
