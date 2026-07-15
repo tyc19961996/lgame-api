@@ -61,7 +61,7 @@ source sql/init_ali_ad_reward.sql;
 
 ## 3. 支付宝回调数据要求
 
-前端拉起广告任务时，需要把玩家 openid 放进 `extendInfo.openid`。服务端只使用 `extendInfo.openid` 关联玩家，不会用支付宝 `userId` 兜底。
+服务端当前按支付宝广告回调里的 `userId` 作为玩家 openid 关联奖励。`extendInfo` 仅作为扩展信息保存，`extendInfo.openid` 可以不传，服务端不会再从它取 openid。
 
 回调必填字段：
 
@@ -71,7 +71,6 @@ source sql/init_ali_ad_reward.sql;
 | `bizId` | 支付宝奖励业务唯一 ID，用于幂等 |
 | `spaceCode` | 广告位编码 |
 | `rewardNumber` | 奖励数量 |
-| `extendInfo.openid` | 当前游戏登录用户 openid |
 
 同一个 `bizId` 重复回调只记录一次。
 
