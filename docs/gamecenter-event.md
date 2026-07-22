@@ -28,7 +28,7 @@
 ## 2. 前端调用
 
 ```typescript
-import { LGameAPI } from './LGameApi';
+import { LGameAPI } from 'lgame-api';
 
 // 登录后调用
 const res = await LGameAPI.submitGamecenterEvent({

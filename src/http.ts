@@ -4,9 +4,7 @@
  * - httpRequest: 带 token 过期自动重试
  */
 import type { ApiResponse } from './types';
-
-const BASE_URL = 'https://hyxx.yiiwan.cn/api/v1/'
-// const BASE_URL = 'http://127.0.0.1:5177/api/v1/'
+import { getBaseUrl } from './config';
 
 /**
  * 底层发送 HTTP 请求（不含重试逻辑）
@@ -14,7 +12,7 @@ const BASE_URL = 'https://hyxx.yiiwan.cn/api/v1/'
 export function rawRequest<T>(path: string, method: 'GET' | 'POST', data?: Record<string, any>, token?: string): Promise<ApiResponse<T>> {
 
   return new Promise((resolve, reject) => {
-    let url = `${BASE_URL}${path}`;
+    let url = `${getBaseUrl()}${path}`;
 
     if (method === 'GET' && data) {
       const params: string[] = [];

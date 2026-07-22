@@ -345,7 +345,7 @@ interface MockPlayer {
 ### 完整流程（TypeScript）
 
 ```typescript
-import { LGameAPI } from './LGameApi';
+import { LGameAPI } from 'lgame-api';
 
 // === 初始化 ===
 LGameAPI.appid = 'wx1234567890abcdef';

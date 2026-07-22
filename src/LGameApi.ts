@@ -2,7 +2,7 @@
  * LGameAPI - 通用游戏 API 客户端
  *
  * 使用流程:
- *   1. LGameAPI.appid = 'xxx'      设置 appid
+ *   1. LGameAPI.init({ baseUrl, appid })  初始化（baseUrl 必填）
  *   2. await LGameAPI.login()       登录（自动适配平台/开发模式）
  *   3. await LGameAPI.submitScore() 提交分数
  *   4. await LGameAPI.getTopList()  查询排行榜
@@ -39,7 +39,8 @@ import type {
   MockPlayer,
 } from './types';
 
-import { isDevMode, getPlatform, platformLogin } from './config';
+import { isDevMode, getPlatform, platformLogin, applyConfig } from './config';
+import type { LGameApiOptions } from './config';
 import { rawRequest, httpRequest } from './http';
 
 export class LGameAPI {
@@ -72,6 +73,21 @@ export class LGameAPI {
 
   private static _openId: string = '';
   private static _token: string = '';
+
+  // ==================== 初始化 ====================
+
+  /**
+   * 初始化 SDK（必须在 login() 之前调用）
+   * @param options.baseUrl 服务端接口地址（必填），如 https://example.com/api/v1/
+   * @param options.appid 小程序 AppID，等同于设置 LGameAPI.appid
+   * @param options.devId 开发模式自定义 ID，等同于设置 LGameAPI.devId
+   * @param options.isDevMode / getPlatform / platformLogin 可选，按项目重写平台适配逻辑，不传使用默认实现
+   */
+  public static init(options: LGameApiOptions): void {
+    applyConfig(options);
+    if (options.appid) this.appid = options.appid;
+    if (options.devId) this.devId = options.devId;
+  }
 
   // ==================== 登录 ====================
 

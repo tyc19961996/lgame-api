@@ -72,7 +72,7 @@ GET /api/v1/remote-config?game_key=game_2048&version=1.2.3&token=eyJhbGci...
 ### 基础用法
 
 ```typescript
-import { LGameAPI } from './LGameApi';
+import { LGameAPI } from 'lgame-api';
 
 LGameAPI.appid = 'wx1234567890abcdef';
 await LGameAPI.login();

@@ -129,7 +129,7 @@ GET /api/v1/gamedata/load?game_key=game_2048&token=eyJhbGci...
 ### 完整流程（TypeScript）
 
 ```typescript
-import { LGameAPI } from './LGameApi';
+import { LGameAPI } from 'lgame-api';
 
 // === 登录 ===
 LGameAPI.appid = 'wx1234567890abcdef';

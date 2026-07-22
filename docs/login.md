@@ -78,10 +78,13 @@
 ### TypeScript（LGameAPI 封装）
 
 ```typescript
-import { LGameAPI } from './LGameApi';
+import { LGameAPI } from 'lgame-api';
 
-// 1. 初始化 appid（游戏启动时设置一次）
-LGameAPI.appid = 'wx1234567890abcdef';
+// 1. 初始化（游戏启动时调用一次，baseUrl 必填）
+LGameAPI.init({
+  baseUrl: 'https://your-server.com/api/v1/',
+  appid: 'wx1234567890abcdef',
+});
 
 // 2. 登录
 const res = await LGameAPI.login();
@@ -96,16 +99,18 @@ if (res.code === 0) {
 支付宝小游戏同样使用 `LGameAPI.login()`，SDK 内部会调用 `my.getAuthCode({ scopes: 'auth_base' })`：
 
 ```typescript
-LGameAPI.appid = '202100xxxx';
+LGameAPI.init({ baseUrl: 'https://your-server.com/api/v1/', appid: '202100xxxx' });
 const res = await LGameAPI.login();
 ```
 
 哔哩哔哩小游戏同样使用 `LGameAPI.login()`，SDK 内部会调用 `bl.login()`。当前封装按非虚拟小游戏处理，不传 `vAppId`：
 
 ```typescript
-LGameAPI.appid = 'bili_xxxx';
+LGameAPI.init({ baseUrl: 'https://your-server.com/api/v1/', appid: 'bili_xxxx' });
 const res = await LGameAPI.login();
 ```
+
+平台识别与登录逻辑（`isDevMode` / `getPlatform` / `platformLogin`）可在 `init` 时按项目重写，详见 [README](../README.md)。
 
 ### 原生请求
 

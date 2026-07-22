@@ -11,7 +11,7 @@
 ## 1. 邀请人创建分享码
 
 ```typescript
-import { LGameAPI } from './LGameApi';
+import { LGameAPI } from 'lgame-api';
 
 LGameAPI.appid = 'wx1234567890abcdef';
 await LGameAPI.login();

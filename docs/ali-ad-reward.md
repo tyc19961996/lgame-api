@@ -13,13 +13,13 @@
 支付宝广告后台填写：
 
 ```text
-https://hyxx.yiiwan.cn/api/v1/ali-ad/reward/callback?game_key=FindWordGame
+https://your-server.com/api/v1/ali-ad/reward/callback?game_key=FindWordGame
 ```
 
 如果接入其他游戏，把 `FindWordGame` 替换为对应 `game_key`：
 
 ```text
-https://hyxx.yiiwan.cn/api/v1/ali-ad/reward/callback?game_key=你的game_key
+https://your-server.com/api/v1/ali-ad/reward/callback?game_key=你的game_key
 ```
 
 回调 GET 校验和 POST 正式回调使用同一个地址。服务端成功响应固定为：
@@ -81,7 +81,7 @@ source sql/init_ali_ad_reward.sql;
 **前置条件：** 支付宝小游戏环境中先调用 `LGameAPI.login()`，SDK 会自动使用 `my.getAuthCode({ scopes: 'auth_base' })` 登录并换取 JWT。
 
 ```typescript
-import { LGameAPI } from './LGameApi';
+import { LGameAPI } from 'lgame-api';
 
 LGameAPI.appid = '202100xxxx';
 await LGameAPI.login();
