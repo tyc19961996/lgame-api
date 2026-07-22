@@ -209,6 +209,34 @@ export interface ClaimAliAdRewardResponseData {
   rewards: AliAdRewardItem[];
 }
 
+/** 游戏中心事件属性（key 为属性 id，value 为属性值） */
+export interface GamecenterEventProperty {
+  key: string;
+  value: string;
+}
+
+/** 支付宝游戏中心事件上报参数 */
+export interface SubmitGamecenterEventParams {
+  /** 游戏标识 */
+  game_key: string;
+  /** 事件 id（在支付宝处创建） */
+  event_id: string;
+  /** 事件完成时间，格式 yyyy-MM-dd HH:mm:ss，不传默认服务端当前时间 */
+  event_finish_date?: string;
+  /** 事件完成渠道（小程序启动参数 channel 字段），不传默认 other */
+  event_finish_channel?: string;
+  /** 外部业务流水号（全局唯一，用于幂等），不传由服务端自动生成 */
+  out_biz_no?: string;
+  /** 事件关联的属性列表 */
+  property_map?: GamecenterEventProperty[];
+}
+
+/** 支付宝游戏中心事件上报响应 */
+export interface SubmitGamecenterEventResponseData {
+  submitted: boolean;
+  out_biz_no: string;
+}
+
 /** 更新玩家资料参数 */
 export interface UpdateProfileParams {
   game_key: string;

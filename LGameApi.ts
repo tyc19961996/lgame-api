@@ -31,6 +31,8 @@ import type {
   ClaimInviteRewardResponseData,
   AliAdRewardPendingResponseData,
   ClaimAliAdRewardResponseData,
+  SubmitGamecenterEventParams,
+  SubmitGamecenterEventResponseData,
   UpdateProfileParams,
   UpdateProfileResponseData,
   PercentileResponseData,
@@ -260,6 +262,22 @@ export class LGameAPI {
       'ali-ad/reward/claim',
       'POST',
       { game_key: gameKey },
+      this._token
+    );
+  }
+
+  // ==================== 支付宝游戏中心事件上报 ====================
+
+  /**
+   * 上报小游戏用户事件到支付宝游戏中心（仅支付宝平台可用）
+   * 服务端将调用 alipay.user.gamecenter.event.submit 同步给游戏中心
+   * @param params 事件参数（game_key、event_id 必填；event_finish_channel 建议传启动参数中的 channel）
+   */
+  public static async submitGamecenterEvent(params: SubmitGamecenterEventParams): Promise<ApiResponse<SubmitGamecenterEventResponseData>> {
+    return httpRequest<SubmitGamecenterEventResponseData>(
+      'gamecenter/event/submit',
+      'POST',
+      params as unknown as Record<string, any>,
       this._token
     );
   }
