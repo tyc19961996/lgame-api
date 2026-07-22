@@ -37,11 +37,11 @@ import type {
   UpdateProfileResponseData,
   PercentileResponseData,
   MockPlayer,
-} from './types';
+} from './types.js';
 
-import { isDevMode, getPlatform, platformLogin, applyConfig } from './config';
-import type { LGameApiOptions } from './config';
-import { rawRequest, httpRequest } from './http';
+import { isDevMode, getPlatform, platformLogin, applyConfig } from './config.js';
+import type { LGameApiOptions } from './config.js';
+import { rawRequest, httpRequest } from './http.js';
 
 export class LGameAPI {
 

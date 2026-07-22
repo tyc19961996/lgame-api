@@ -1,6 +1,7 @@
 {
   "name": "lgame-api",
-  "version": "1.7.1",
+  "version": "1.7.2",
+  "type": "module",
   "description": "小游戏通用服务端 API 客户端 SDK（登录、排行榜、存档、远程配置、邀请任务、支付宝广告奖励/游戏中心事件上报）",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

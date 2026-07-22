@@ -1,9 +1,9 @@
-export { LGameAPI } from './LGameApi';
+export { LGameAPI } from './LGameApi.js';
 export {
   applyConfig,
   defaultIsDevMode,
   defaultGetPlatform,
   defaultPlatformLogin,
-} from './config';
-export type { LGameApiOptions, PlatformAdapter } from './config';
-export * from './types';
+} from './config.js';
+export type { LGameApiOptions, PlatformAdapter } from './config.js';
+export * from './types.js';

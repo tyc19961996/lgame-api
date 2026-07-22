@@ -3,8 +3,8 @@
  * - rawRequest: 底层请求，不含重试
  * - httpRequest: 带 token 过期自动重试
  */
-import type { ApiResponse } from './types';
-import { getBaseUrl } from './config';
+import type { ApiResponse } from './types.js';
+import { getBaseUrl } from './config.js';
 
 /**
  * 底层发送 HTTP 请求（不含重试逻辑）
@@ -69,7 +69,7 @@ export async function httpRequest<T>(path: string, method: 'GET' | 'POST', data?
 
   // 延迟导入避免循环依赖
   if (response.code === 402) {
-    const { LGameAPI } = await import('./LGameApi');
+    const { LGameAPI } = await import('./LGameApi.js');
     if (LGameAPI.isLoggedIn) {
       const ok = await LGameAPI._silentLogin();
       if (ok) {
