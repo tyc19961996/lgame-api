@@ -21,7 +21,7 @@
 | `appid` | `202100xxxx` | 支付宝小程序 AppID |
 | `secret_key` | `-----BEGIN PRIVATE KEY-----...` | 应用私钥，用于 RSA2 签名调用支付宝网关 |
 
-3. 用户已通过 `LGameAPI.login()` 登录（服务端从 JWT 中取 `open_id`，前端无需传）。
+3. 用户已通过 `LGameAPI.login()` 登录（服务端从 JWT 中取 `open_id`，前端无需传）。旧版支付宝应用登录返回的是 2088 开头 16 位 `user_id`，服务端会自动识别并改走 `alipay_user_id` 字段上报，无需处理。
 
 ---
 
