@@ -52,7 +52,7 @@
     "open_id": "oXXXX_xxxxxxxxxxxxxxxx",
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   },
-  "timestamp": "2026-04-16T12:00:00.000Z"
+  "timestamp": "1760000000000"
 }
 ```
 

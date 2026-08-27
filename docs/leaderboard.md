@@ -57,7 +57,7 @@
     "score": 9999,
     "rank": 15
   },
-  "timestamp": "2026-04-16T12:00:00.000Z"
+  "timestamp": "1760000000000"
 }
 ```
 
@@ -134,7 +134,7 @@ GET /api/v1/leaderboard/top?game_key=game_2048&leaderboard_key=high_score_daily&
       }
     ]
   },
-  "timestamp": "2026-04-16T12:00:00.000Z"
+  "timestamp": "1760000000000"
 }
 ```
 
@@ -194,7 +194,7 @@ GET /api/v1/leaderboard/myRank?game_key=game_2048&leaderboard_key=high_score_dai
     "extra_data": null,
     "total": 1523
   },
-  "timestamp": "2026-04-16T12:00:00.000Z"
+  "timestamp": "1760000000000"
 }
 ```
 
@@ -212,7 +212,7 @@ GET /api/v1/leaderboard/myRank?game_key=game_2048&leaderboard_key=high_score_dai
     "extra_data": null,
     "total": 1523
   },
-  "timestamp": "2026-04-16T12:00:00.000Z"
+  "timestamp": "1760000000000"
 }
 ```
 
@@ -261,7 +261,7 @@ GET /api/v1/leaderboard/aroundMe?game_key=game_2048&leaderboard_key=high_score_d
       { "rank": 16, "openid": "oDDD", "player_name": "赵六", "avatar_url": "", "score": 9800,  "extra_data": null }
     ]
   },
-  "timestamp": "2026-04-16T12:00:00.000Z"
+  "timestamp": "1760000000000"
 }
 ```
 

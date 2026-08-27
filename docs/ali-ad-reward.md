@@ -116,7 +116,7 @@ GET /api/v1/ali-ad/reward/pending?game_key=FindWordGame&token=JWT
       }
     ]
   },
-  "timestamp": "2026-07-10T12:00:00.000Z"
+  "timestamp": "1760000000000"
 }
 ```
 

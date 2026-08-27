@@ -47,7 +47,7 @@
   "data": {
     "saved": true
   },
-  "timestamp": "2026-04-20T12:00:00.000Z"
+  "timestamp": "1760000000000"
 }
 ```
 
@@ -86,7 +86,7 @@ GET /api/v1/gamedata/load?game_key=game_2048&token=eyJhbGci...
     "data": "{\"level\":10,\"gold\":500,\"items\":[1,2,3]}",
     "updated_at": "2026-04-20T15:30:00.000Z"
   },
-  "timestamp": "2026-04-20T12:00:00.000Z"
+  "timestamp": "1760000000000"
 }
 ```
 
@@ -100,7 +100,7 @@ GET /api/v1/gamedata/load?game_key=game_2048&token=eyJhbGci...
     "data": null,
     "updated_at": null
   },
-  "timestamp": "2026-04-20T12:00:00.000Z"
+  "timestamp": "1760000000000"
 }
 ```
 

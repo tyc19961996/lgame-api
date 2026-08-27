@@ -9,6 +9,7 @@
  *   5. await LGameAPI.saveGameData() 保存游戏数据
  *   6. await LGameAPI.loadGameData() 加载游戏数据
  *   7. await LGameAPI.getRemoteConfig() 获取远程配置
+ *   8. await LGameAPI.getTimestamp() 获取服务端时间戳
  */
 import type {
   ApiResponse,
@@ -87,6 +88,16 @@ export class LGameAPI {
     applyConfig(options);
     if (options.appid) this.appid = options.appid;
     if (options.devId) this.devId = options.devId;
+  }
+
+  // ==================== 服务端时间 ====================
+
+  /**
+   * 获取服务端当前 Unix 毫秒时间戳
+   * @returns data 固定为 null，timestamp 为十进制毫秒时间戳字符串
+   */
+  public static async getTimestamp(): Promise<ApiResponse<null>> {
+    return httpRequest<null>('timestamp', 'GET');
   }
 
   // ==================== 登录 ====================

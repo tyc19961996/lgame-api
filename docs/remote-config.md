@@ -54,7 +54,7 @@ GET /api/v1/remote-config?game_key=game_2048&version=1.2.3&token=eyJhbGci...
       }
     }
   },
-  "timestamp": "2026-06-03T12:00:00.000Z"
+  "timestamp": "1760000000000"
 }
 ```
 

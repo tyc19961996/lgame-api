@@ -7,6 +7,7 @@ export interface ApiResponse<T> {
   code: number;
   message: string;
   data: T;
+  /** 服务端 Unix 毫秒时间戳（十进制字符串） */
   timestamp: string;
 }
 
