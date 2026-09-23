@@ -104,7 +104,7 @@ export class LGameAPI {
 
   /**
    * 登录：自动识别平台环境
-   * - 小游戏环境：调用平台 login 获取 code → 换取 openid + JWT
+   * - 小游戏环境：调用平台 login 获取 code/token → 换取 openid + JWT
    * - 开发模式（浏览器）：调用 dev/login 接口获取模拟 openid + JWT
    */
   public static async login(): Promise<ApiResponse<OpenIdResponseData>> {

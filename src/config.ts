@@ -8,7 +8,7 @@
 export interface PlatformAdapter {
   /** 当前是否为开发模式 */
   isDevMode: () => boolean;
-  /** 当前平台标识（wechat / ali / ks / bytedance / bilibili / web 等） */
+  /** 当前平台标识（wechat / ali / ks / bytedance / bilibili / oppo / web 等） */
   getPlatform: () => string;
   /** 平台登录，resolve 值需包含 code 字段 */
   platformLogin: () => Promise<any>;
@@ -28,11 +28,12 @@ export interface LGameApiOptions extends Partial<PlatformAdapter> {
 
 /** 默认：无任何小游戏全局对象时视为开发模式 */
 export function defaultIsDevMode(): boolean {
-  return !window['wx'] && !window['ks'] && !window['tt'] && !window['my'] && !window['bl'];
+  return !window['wx'] && !window['ks'] && !window['tt'] && !window['my'] && !window['bl'] && !window['qg'];
 }
 
 /** 默认：根据全局对象识别平台 */
 export function defaultGetPlatform(): string {
+  if (window['qg']) return 'oppo';
   if (window['my']) return 'ali';
   if (window['bl']) return 'bilibili';
   if (window['ks']) return 'ks';
@@ -44,7 +45,12 @@ export function defaultGetPlatform(): string {
 /** 默认：调用对应平台的登录接口获取 code */
 export function defaultPlatformLogin(): Promise<any> {
   return new Promise((resolve, reject) => {
-    if (window['ks']) {
+    if (window['qg']) {
+      window['qg'].login({
+        success: (res: any) => resolve({ ...res, ...(res.data || {}), code: res.data?.token || res.token || res.code }),
+        fail: (err: any) => reject(new Error(`OPPO 登录失败: ${err.errMsg || err.errorMessage || err.error || '未知错误'}`)),
+      });
+    } else if (window['ks']) {
       window['ks'].login({
         success: (res: any) => resolve(res),
         fail: (err: any) => reject(new Error(`快手登录失败: ${err.errMsg}`)),

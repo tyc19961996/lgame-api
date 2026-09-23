@@ -37,10 +37,10 @@
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | appid | string | 是 | 小程序 AppID |
-| platform | string | 是 | 平台标识：`wechat` / `ks` / `bytedance` / `ali` / `bilibili` |
+| platform | string | 是 | 平台标识：`wechat` / `ks` / `bytedance` / `ali` / `bilibili` / `oppo` |
 | code | string | 是 | 平台 login() 返回的登录凭证 |
 
-> `platform` 支持别名自动转换：`wx`/`微信` → `wechat`，`快手` → `ks`，`抖音`/`tt` → `bytedance`，`支付宝`/`alipay` → `ali`，`B站`/`bl` → `bilibili`
+> `platform` 支持别名自动转换：`wx`/`微信` → `wechat`，`快手` → `ks`，`抖音`/`tt` → `bytedance`，`支付宝`/`alipay` → `ali`，`B站`/`bl` → `bilibili`，`qg`/`欧珀` → `oppo`
 
 **成功响应：**
 
@@ -143,3 +143,19 @@ wx.login({
 | **JWT 有效期 2 小时** | 过期后需重新调用 `login()` 获取新令牌 |
 | **token 传递方式** | GET 请求放 `query.token`，POST 请求放 `body.token` |
 | **appid 不可为空** | 必须与 `platform_info` 表中配置的 appid 一致 |
+
+## OPPO 小游戏
+
+OPPO 小游戏使用 `qg.login()` 登录，最低平台版本为 1040。成功回调中的 `res.data.token` 会由 SDK 发送给服务端验证，`uid` 不直接作为服务端身份使用。
+
+```javascript
+// OPPO 环境会自动识别 window.qg，无需手动传 platformLogin
+LGameAPI.init({
+  baseUrl: 'https://your-server.com/api/v1/',
+  appid: 'com.example.game', // OPPO 小游戏包名
+});
+
+const result = await LGameAPI.login();
+```
+
+服务端平台配置中使用 `platform=oppo`，`appid` 填写包名，`secret_key` 填写 `{"appKey":"平台 AppKey","appSecret":"平台 AppSecret"}`。服务端验证 OPPO `userInfo` 接口成功后才签发 JWT。

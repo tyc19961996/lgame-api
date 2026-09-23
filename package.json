@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node test/timestamp-api.test.js",
+    "test": "npm run build && node test/timestamp-api.test.js && node test/oppo-login.test.js",
     "prepare": "npm run build",
     "prepublishOnly": "npm run build"
   },

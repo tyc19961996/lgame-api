@@ -1,6 +1,6 @@
 # lgame-api
 
-小游戏通用服务端 API 客户端 SDK。支持微信 / 支付宝 / 抖音 / 快手 / Bilibili 小游戏平台，提供服务端时间、登录、排行榜、游戏存档、远程配置、邀请任务、支付宝广告奖励与游戏中心事件上报等能力。
+小游戏通用服务端 API 客户端 SDK。支持微信 / 支付宝 / 抖音 / 快手 / Bilibili / OPPO 小游戏平台，提供服务端时间、登录、排行榜、游戏存档、远程配置、邀请任务、支付宝广告奖励与游戏中心事件上报等能力。
 
 ## 安装
 
@@ -29,7 +29,7 @@ await LGameAPI.login();
 
 ## 按项目重写平台适配
 
-`isDevMode` / `getPlatform` / `platformLogin` 默认根据全局对象（`wx` / `my` / `tt` / `ks` / `bl`）自动识别平台并调用对应登录接口。如果某个项目有特殊逻辑（比如固定平台、自定义登录流程），可以在 `init` 时重写，不传则使用默认实现：
+`isDevMode` / `getPlatform` / `platformLogin` 默认根据全局对象（`wx` / `my` / `tt` / `ks` / `bl` / `qg`）自动识别平台并调用对应登录接口。如果某个项目有特殊逻辑（比如固定平台、自定义登录流程），可以在 `init` 时重写，不传则使用默认实现：
 
 ```typescript
 LGameAPI.init({
@@ -49,7 +49,7 @@ LGameAPI.init({
 });
 ```
 
-`platformLogin` 的约定：resolve 的对象需包含 `code` 字段（登录凭证），服务端用它换取 openid。
+`platformLogin` 的约定：resolve 的对象需包含 `code` 字段（登录凭证），服务端用它换取 openid。OPPO 平台的 `qg.login()` 返回 `res.data.token`，SDK 会把它作为登录凭证发送给服务端。
 
 ## 功能文档
 
