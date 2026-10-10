@@ -5,6 +5,7 @@
  */
 import type { ApiResponse } from './types.js';
 import { getBaseUrl } from './config.js';
+import { getSession, assertSession, markTokenExpired, SessionChangedError } from './session.js';
 
 /**
  * 底层发送 HTTP 请求（不含重试逻辑）
@@ -65,16 +66,25 @@ export function rawRequest<T>(path: string, method: 'GET' | 'POST', data?: Recor
  * 收到 code=402 时自动重新登录，然后用新 token 重发请求
  */
 export async function httpRequest<T>(path: string, method: 'GET' | 'POST', data?: Record<string, any>, token?: string): Promise<ApiResponse<T>> {
+  const session = getSession();
+  if (token && token !== session.token) throw new SessionChangedError();
   const response = await rawRequest<T>(path, method, data, token);
+  assertSession(session);
 
   // 延迟导入避免循环依赖
-  if (response.code === 402) {
+  if (response.code === 402 && token && session.openId) {
+    markTokenExpired(token);
     const { LGameAPI } = await import('./LGameApi.js');
-    if (LGameAPI.isLoggedIn) {
-      const ok = await LGameAPI._silentLogin();
-      if (ok) {
-        return rawRequest<T>(path, method, data, LGameAPI.token);
-      }
+    assertSession(session);
+    // 迟到的旧 token 响应复用同账户的新 token，避免重复消耗授权码。
+    const ok = getSession().token !== token || await LGameAPI._silentLogin();
+    assertSession(session);
+    if (ok) {
+      const retryToken = getSession().token;
+      const retry = await rawRequest<T>(path, method, data, retryToken);
+      assertSession(session);
+      if (retry.code === 402) markTokenExpired(retryToken);
+      return retry;
     }
   }
 

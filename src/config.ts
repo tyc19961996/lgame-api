@@ -5,13 +5,21 @@
  */
 
 /** 平台适配函数集合 */
+export interface PlatformLoginResult {
+  code?: string;
+  success?: boolean;
+  /** HarmonyOS NEXT 必填，由 unionLogin 返回。 */
+  gamePlayerId?: string;
+  [key: string]: any;
+}
+
 export interface PlatformAdapter {
   /** 当前是否为开发模式 */
   isDevMode: () => boolean;
-  /** 当前平台标识（wechat / ali / ks / bytedance / bilibili / oppo / web 等） */
+  /** 当前平台标识（wechat / ali / ks / bytedance / bilibili / oppo / harmony / web 等） */
   getPlatform: () => string;
-  /** 平台登录，resolve 值需包含 code 字段 */
-  platformLogin: () => Promise<any>;
+  /** 平台登录，需包含 code；Harmony 还需 success=true 和 gamePlayerId。 */
+  platformLogin: () => Promise<PlatformLoginResult>;
 }
 
 /** LGameAPI.init() 初始化选项 */

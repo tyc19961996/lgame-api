@@ -1,6 +1,6 @@
 {
   "name": "lgame-api",
-  "version": "1.7.4",
+  "version": "1.8.0",
   "type": "module",
   "description": "小游戏通用服务端 API 客户端 SDK（服务端时间、登录、排行榜、存档、远程配置、邀请任务、支付宝广告奖励/游戏中心事件上报）",
   "main": "dist/index.js",
@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node test/timestamp-api.test.js && node test/oppo-login.test.js",
+    "test": "npm run build && node test/timestamp-api.test.js && node test/oppo-login.test.js && node test/session-login.test.js",
     "prepare": "npm run build",
     "prepublishOnly": "npm run build"
   },

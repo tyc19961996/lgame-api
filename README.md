@@ -1,6 +1,6 @@
 # lgame-api
 
-小游戏通用服务端 API 客户端 SDK。支持微信 / 支付宝 / 抖音 / 快手 / Bilibili / OPPO 小游戏平台，提供服务端时间、登录、排行榜、游戏存档、远程配置、邀请任务、支付宝广告奖励与游戏中心事件上报等能力。
+小游戏通用服务端 API 客户端 SDK。支持微信 / 支付宝 / 抖音 / 快手 / Bilibili / OPPO 小游戏平台及 HarmonyOS NEXT native 适配，提供服务端时间、登录、排行榜、游戏存档、远程配置、邀请任务、支付宝广告奖励与游戏中心事件上报等能力。
 
 ## 安装
 
@@ -57,6 +57,7 @@ LGameAPI.init({
 
 - [服务端时间戳](./docs/timestamp.md)
 - [登录](./docs/login.md)
+- [HarmonyOS NEXT 登录与会话隔离（1.8.0）](./docs/harmony-login.md)
 - [排行榜](./docs/leaderboard.md)
 - [游戏存档](./docs/gamedata.md)
 - [远程配置](./docs/remote-config.md)

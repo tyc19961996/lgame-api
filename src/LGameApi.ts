@@ -40,17 +40,26 @@ import type {
   MockPlayer,
 } from './types.js';
 
-import { isDevMode, getPlatform, platformLogin, applyConfig } from './config.js';
+import { isDevMode, getPlatform, platformLogin, applyConfig, getBaseUrl } from './config.js';
 import type { LGameApiOptions } from './config.js';
 import { rawRequest, httpRequest } from './http.js';
+import { getSession, clearSession, assertGeneration, bindLoginContext, commitSession, assertSession, SessionChangedError } from './session.js';
 
 export class LGameAPI {
 
   /** 小程序 AppID（需在初始化时设置） */
-  public static appid: string = '';
+  private static _appid: string = '';
+  public static get appid(): string { return this._appid; }
+  public static set appid(value: string) {
+    if (value !== this._appid) { this.clearSession(); this._appid = value; }
+  }
 
   /** 开发模式下的自定义 ID（用于区分不同开发者的数据） */
-  public static devId: string = 'default';
+  private static _devId: string = 'default';
+  public static get devId(): string { return this._devId; }
+  public static set devId(value: string) {
+    if (value !== this._devId) { this.clearSession(); this._devId = value; }
+  }
 
   /** 平台标识 */
   public static get platform(): string {
@@ -69,11 +78,19 @@ export class LGameAPI {
 
   /** 是否已登录 */
   public static get isLoggedIn(): boolean {
-    return !!this._token;
+    return !!this._token && !!this._openId && !getSession().expired;
   }
 
-  private static _openId: string = '';
-  private static _token: string = '';
+  private static get _openId(): string { return getSession().openId; }
+  private static get _token(): string { return getSession().token; }
+  private static _loginPromise: Promise<ApiResponse<OpenIdResponseData>> | null = null;
+  private static _loginGeneration: number = -1;
+
+  /** 清除会话，同时使正在进行的登录和业务请求结果失效。 */
+  public static clearSession(): void {
+    clearSession();
+    this._loginPromise = null;
+  }
 
   // ==================== 初始化 ====================
 
@@ -85,6 +102,7 @@ export class LGameAPI {
    * @param options.isDevMode / getPlatform / platformLogin 可选，按项目重写平台适配逻辑，不传使用默认实现
    */
   public static init(options: LGameApiOptions): void {
+    this.clearSession();
     applyConfig(options);
     if (options.appid) this.appid = options.appid;
     if (options.devId) this.devId = options.devId;
@@ -107,26 +125,8 @@ export class LGameAPI {
    * - 小游戏环境：调用平台 login 获取 code/token → 换取 openid + JWT
    * - 开发模式（浏览器）：调用 dev/login 接口获取模拟 openid + JWT
    */
-  public static async login(): Promise<ApiResponse<OpenIdResponseData>> {
-    if (isDevMode()) {
-      return this._devLogin();
-    }
-
-    const loginRes = await platformLogin();
-    const code = loginRes?.code;
-
-    const response = await httpRequest<OpenIdResponseData>(
-      'getOpenId',
-      'GET',
-      { appid: this.appid, platform: this.platform, code }
-    );
-
-    if (response.code === 0 && response.data) {
-      this._openId = response.data.open_id;
-      this._token = response.data.token;
-    }
-
-    return response;
+  public static login(): Promise<ApiResponse<OpenIdResponseData>> {
+    return this._startLogin(false);
   }
 
   /**
@@ -134,44 +134,63 @@ export class LGameAPI {
    * @returns 是否登录成功
    */
   public static async _silentLogin(): Promise<boolean> {
+    const session = getSession();
     try {
-      if (isDevMode()) {
-        const res = await this._devLogin();
-        return res.code === 0;
-      }
-
-      const loginRes = await platformLogin();
-      const code = loginRes?.code;
-      
-      const response = await rawRequest<OpenIdResponseData>(
-        'getOpenId',
-        'GET',
-        { appid: this.appid, platform: this.platform, code }
-      );
-      if (response.code === 0 && response.data) {
-        this._openId = response.data.open_id;
-        this._token = response.data.token;
-        return true;
-      }
+      const response = await this._startLogin(true);
+      assertSession(session);
+      return response.code === 0 && this.isLoggedIn;
     } catch (e) {
-      // 静默登录失败，不抛异常
+      if (e instanceof SessionChangedError) throw e;
+      return false;
     }
-    return false;
   }
 
-  /** 开发模式登录（内部调用） */
-  private static async _devLogin(): Promise<ApiResponse<OpenIdResponseData>> {
-    const response = await rawRequest<OpenIdResponseData>(
-      'dev/login',
-      'POST',
-      { appid: this.appid, dev_id: this.devId }
-    );
+  private static _startLogin(refresh: boolean): Promise<ApiResponse<OpenIdResponseData>> {
+    const generation = getSession().generation;
+    if (this._loginPromise && this._loginGeneration === generation) return this._loginPromise;
+    const appid = this.appid, platform = this.platform, devId = this.devId, dev = isDevMode();
+    const promise = this._performLogin(generation, appid, platform, devId, dev, refresh);
+    this._loginPromise = promise;
+    this._loginGeneration = generation;
+    // 旧登录结束时不能清除 clearSession 后的新登录任务。
+    const finish = () => { if (this._loginPromise === promise) this._loginPromise = null; };
+    promise.then(finish, finish);
+    return promise;
+  }
 
-    if (response.code === 0 && response.data) {
-      this._openId = response.data.open_id;
-      this._token = response.data.token;
+  private static async _performLogin(generation: number, appid: string, platform: string, devId: string, dev: boolean, refresh: boolean): Promise<ApiResponse<OpenIdResponseData>> {
+    if (platform === 'harmony' && dev) throw new Error('Harmony 登录必须使用 native 平台适配，不支持开发登录替代');
+    const baseUrl = getBaseUrl();
+    bindLoginContext(platform, dev, baseUrl);
+    const check = () => {
+      assertGeneration(generation);
+      if (appid !== this.appid || platform !== this.platform || devId !== this.devId || dev !== isDevMode() || baseUrl !== getBaseUrl()) throw new SessionChangedError();
+    };
+    let response: ApiResponse<OpenIdResponseData>;
+    if (dev) {
+      response = await rawRequest<OpenIdResponseData>('dev/login', 'POST', { appid, dev_id: devId });
+    } else {
+      // 每次新的登录任务都重新取得 code，不缓存一次性授权码。
+      const loginRes = await platformLogin();
+      check();
+      const validString = (value: unknown) => typeof value === 'string' && value.trim().length > 0;
+      if (loginRes?.success === false || !validString(loginRes?.code)) throw new Error('平台登录未返回有效授权码');
+      if (platform === 'harmony' && (loginRes?.success !== true || !validString(loginRes?.gamePlayerId))) {
+        throw new Error('Harmony 平台登录未完成或缺少 gamePlayerId');
+      }
+      response = await rawRequest<OpenIdResponseData>('getOpenId', platform === 'harmony' ? 'POST' : 'GET', {
+        appid, platform, code: loginRes.code,
+        ...(platform === 'harmony' ? { gamePlayerId: loginRes.gamePlayerId } : {})
+      });
     }
-
+    check();
+    if (response.code === 0) {
+      const data = response.data;
+      if (!data || typeof data.open_id !== 'string' || !data.open_id.trim() || typeof data.token !== 'string' || !data.token.trim()) {
+        throw new Error('登录响应缺少有效 open_id 或 token');
+      }
+      commitSession(generation, data.open_id, data.token, refresh);
+    }
     return response;
   }
 
