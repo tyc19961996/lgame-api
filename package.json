@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node test/timestamp-api.test.js && node test/oppo-login.test.js && node test/session-login.test.js",
+    "test": "npm run build && node test/timestamp-api.test.js && node test/oppo-login.test.js && node test/session-login.test.js && tsc --noEmit --skipLibCheck --target ES2020 --module ES2020 --moduleResolution bundler test/player-id-types.test.ts",
     "prepare": "npm run build",
     "prepublishOnly": "npm run build"
   },

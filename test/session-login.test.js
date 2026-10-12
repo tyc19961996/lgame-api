@@ -156,3 +156,15 @@ test('首次native登录pending时改变平台，新平台可立即启动登录'
   resolveOld({ success: true, code: 'old-code', gamePlayerId: 'A' }); await rejected;
   assert.equal(LGameAPI.openId, 'B'); assert.equal(requests.length, 1);
 });
+
+test('登录增加可选 UID 不改变旧平台身份、令牌或业务调用', async () => {
+  setup(); const pending = LGameAPI.login(); await tick();
+  const response = ok('A', 'new-token'); response.data.user_id = 'internal-player-id';
+  requests[0].respond(response); const result = await pending;
+  assert.equal(result.data.user_id, 'internal-player-id');
+  assert.equal(LGameAPI.openId, 'A'); assert.equal(LGameAPI.token, 'new-token');
+  const save = LGameAPI.saveGameData({ game_key: 'demo', data: 'fresh-save' }); await tick();
+  assert.equal(requests[1].body.token, 'new-token');
+  assert.equal(Object.hasOwn(requests[1].body, 'user_id'), false);
+  requests[1].respond({ code: 0, data: { saved: true } }); assert.equal((await save).code, 0);
+});

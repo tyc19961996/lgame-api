@@ -161,3 +161,9 @@ const result = await LGameAPI.login();
 ```
 
 服务端平台配置中使用 `platform=oppo`，`appid` 填写包名，`secret_key` 填写 `{"appKey":"平台 AppKey","appSecret":"平台 AppSecret"}`。服务端验证 OPPO `userInfo` 接口成功后才签发 JWT。
+
+## 内部玩家编号兼容
+
+支持内部账号的新服务端在原有 `open_id`、`token` 之外返回可选字符串 `user_id`。`LGameAPI.login()` 会保留完整响应，可读取 `loginRes.data.user_id`；使用旧服务端时该字段可能不存在。平台 `open_id` 不会替换为内部 UUID，已有游戏继续使用 `LGameAPI.openId` 和 `LGameAPI.token`。
+
+业务接口的调用参数不变，SDK 仍携带 token，服务端自行解析内部玩家编号。无需把 UID 填入 OpenID 字段或主动传入业务请求。数据库重置后是否保留历史进度由部署方案决定，不由新增响应字段决定。
