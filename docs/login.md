@@ -18,7 +18,7 @@ HarmonyOS NEXT 从 1.8.0 使用 POST 授权码和 gamePlayerId 核验，接入�
   │    → 服务端用 code + secret 向平台换 openid
   │    → 签发 JWT 令牌（2小时有效）
   │
-  └─ 返回 { open_id, token }
+  └─ 返回 { open_id, token, user_id }
        → 保存 token，后续接口使用
 ```
 
@@ -52,7 +52,8 @@ HarmonyOS NEXT 从 1.8.0 使用 POST 授权码和 gamePlayerId 核验，接入�
   "message": "Success",
   "data": {
     "open_id": "oXXXX_xxxxxxxxxxxxxxxx",
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user_id": "User7K3P9X2DQ6WR"
   },
   "timestamp": "1760000000000"
 }
@@ -62,6 +63,7 @@ HarmonyOS NEXT 从 1.8.0 使用 POST 授权码和 gamePlayerId 核验，接入�
 |------|------|------|
 | data.open_id | string | 玩家在该平台的唯一标识 |
 | data.token | string | JWT 令牌，有效期 2 小时，用于后续所有业务接口 |
+| data.user_id | string（可选） | 内部玩家编号，新账号示例 `User7K3P9X2DQ6WR`；可用于设置界面展示和复制 |
 
 **错误响应：**
 
@@ -164,6 +166,8 @@ const result = await LGameAPI.login();
 
 ## 内部玩家编号兼容
 
-支持内部账号的新服务端在原有 `open_id`、`token` 之外返回可选字符串 `user_id`。`LGameAPI.login()` 会保留完整响应，可读取 `loginRes.data.user_id`；使用旧服务端时该字段可能不存在。平台 `open_id` 不会替换为内部 UUID，已有游戏继续使用 `LGameAPI.openId` 和 `LGameAPI.token`。
+支持内部账号的新服务端在原有 `open_id`、`token` 之外返回可选字符串 `user_id`。`LGameAPI.login()` 会保留完整响应，可读取 `loginRes.data.user_id`；使用旧服务端时该字段可能不存在。平台 `open_id` 不会替换为内部玩家编号，已有游戏继续使用 `LGameAPI.openId` 和 `LGameAPI.token`。
 
 业务接口的调用参数不变，SDK 仍携带 token，服务端自行解析内部玩家编号。无需把 UID 填入 OpenID 字段或主动传入业务请求。数据库重置后是否保留历史进度由部署方案决定，不由新增响应字段决定。
+
+新账号编号采用固定 User 前缀和 12 位随机大写字母数字，无分隔符。已有账号的编号可能为 UUID，SDK 将其作为不透明字符串处理，不检查前缀或长度。不要从编号推导玩家身份；后续请求继续使用 token。编号生成后保持不变，客户端无需把 user_id 加到请求中。

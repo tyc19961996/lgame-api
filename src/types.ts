@@ -25,7 +25,7 @@ export enum ErrorCode {
 export interface OpenIdResponseData {
   open_id: string;
   token: string;
-  /** 新服务端返回的内部玩家编号；旧服务端可不返回，客户端无需传入业务接口 */
+  /** 内部玩家编号，如 User7K3P9X2DQ6WR；旧服务端可不返回，客户端无需传入业务接口 */
   user_id?: string;
 }
 
