@@ -23,7 +23,7 @@ if (response.code !== 0 || !LGameAPI.isLoggedIn) {
 
 `MiniHelper` 由游戏框架提供，SDK 不依赖或导入框架代码。适配器必须返回 `{ success: true, code: authorizationCode, gamePlayerId: string }`；native 先完成 `unionLogin` 与 `verifyLocalPlayer`，再取得新的授权码。SDK 不直接调用华为上游服务，不保存任何服务端秘密。框架 metadata 使用公开 `app_id` 与 `client_id`，游戏业务 `appid` 使用同一游戏的真正 AGC APP ID，不填包名。
 
-Harmony 使用 `POST /getOpenId` JSON `{ platform: 'harmony', appid, code, gamePlayerId }`。服务器核验玩家后仍返回 `{ open_id, token }`。授权码只有 5 分钟有效期且只能使用一次；每个新登录或刷新任务都重新调用 `platformLogin()`，不缓存或重复发送旧 code。其他小游戏保持 GET 三参数，开发/浏览器保留 `dev/login`；显式 harmony 平台禁止用开发登录替代。
+Harmony 使用 `POST /getOpenId` JSON `{ platform: 'harmony', appid, code, gamePlayerId }`。支持内部账号的服务器核验玩家后返回 `{ open_id, token, user_id }`；user_id 为内部用户编号，SDK 将该字段定义为可选字符串以兼容旧服务端。授权码只有 5 分钟有效期且只能使用一次；每个新登录或刷新任务都重新调用 `platformLogin()`，不缓存或重复发送旧 code。其他小游戏保持 GET 三参数，开发/浏览器保留 `dev/login`；显式 harmony 平台禁止用开发登录替代。
 
 ## 会话与存档隔离
 

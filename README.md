@@ -24,8 +24,11 @@ LGameAPI.init({
   appid: '你的小程序AppID',                     // 可选：等同于 LGameAPI.appid = 'xxx'
 });
 
-await LGameAPI.login();
+const loginRes = await LGameAPI.login();
+const userNumber = loginRes.data.user_id; // string | undefined，供设置界面展示和复制
 ```
+
+登录返回类型包含 `open_id: string`、`token: string`、`user_id?: string`。可选字段兼容旧服务端，内部编号不改变已有业务请求；SDK 无需将其传给存档、榜单等接口。
 
 ## 按项目重写平台适配
 

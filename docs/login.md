@@ -166,8 +166,20 @@ const result = await LGameAPI.login();
 
 ## 内部玩家编号兼容
 
-支持内部账号的新服务端在原有 `open_id`、`token` 之外返回可选字符串 `user_id`。`LGameAPI.login()` 会保留完整响应，可读取 `loginRes.data.user_id`；使用旧服务端时该字段可能不存在。平台 `open_id` 不会替换为内部玩家编号，已有游戏继续使用 `LGameAPI.openId` 和 `LGameAPI.token`。
+支持内部账号的新服务端在原有 `open_id`、`token` 之外返回字符串 `user_id`。SDK 的 `OpenIdResponseData` 将其定义为 `user_id?: string`，以兼容旧服务端可能不返回该字段的情况。`LGameAPI.login()` 的类型仍为 `Promise<ApiResponse<OpenIdResponseData>>`，保留完整响应；平台 `open_id` 不会替换为内部用户编号，已有游戏继续使用 `LGameAPI.openId` 和 `LGameAPI.token`。
 
 业务接口的调用参数不变，SDK 仍携带 token，服务端自行解析内部玩家编号。无需把 UID 填入 OpenID 字段或主动传入业务请求。数据库重置后是否保留历史进度由部署方案决定，不由新增响应字段决定。
 
 新账号编号采用固定 User 前缀和 12 位随机大写字母数字，无分隔符。已有账号的编号可能为 UUID，SDK 将其作为不透明字符串处理，不检查前缀或长度。不要从编号推导玩家身份；后续请求继续使用 token。编号生成后保持不变，客户端无需把 user_id 加到请求中。
+
+
+~~~typescript
+const loginRes = await LGameAPI.login();
+const userNumber: string | undefined = loginRes.data.user_id;
+// 设置界面使用“用户编号”标签；确认字段存在后才提供复制。
+if (userNumber) {
+  console.log('用户编号', userNumber);
+}
+~~~
+
+支付宝广告奖励条目的 user_id 是平台原生编号；登录 data.user_id 是内部用户编号。业务请求继续由 SDK 携带 token，不把任一编号主动填到请求里。上述源码和生成声明已在本地构建验证；这不表示 GitHub/npm 发布已经完成。
