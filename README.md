@@ -25,10 +25,10 @@ LGameAPI.init({
 });
 
 const loginRes = await LGameAPI.login();
-const userNumber = loginRes.data.user_id; // string | undefined，供设置界面展示和复制
+const userNumber = LGameAPI.userId; // string，供设置界面展示和复制
 ```
 
-登录返回类型包含 `open_id: string`、`token: string`、`user_id?: string`。可选字段兼容旧服务端，内部编号不改变已有业务请求；SDK 无需将其传给存档、榜单等接口。
+登录返回类型包含 `open_id: string`、`token: string`、`user_id?: string`。可选字段兼容旧服务端，登录后也可通过只读属性 `LGameAPI.userId` 直接读取；未登录、清除会话或服务端未返回有效编号时为空字符串。内部编号不改变已有业务请求；SDK 无需将其传给存档、榜单等接口。
 
 ## 按项目重写平台适配
 

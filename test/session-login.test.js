@@ -168,3 +168,61 @@ test('登录增加可选 UID 不改变旧平台身份、令牌或业务调用', 
   assert.equal(Object.hasOwn(requests[1].body, 'user_id'), false);
   requests[1].respond({ code: 0, data: { saved: true } }); assert.equal((await save).code, 0);
 });
+const uidResponse = (id, uid, token = 'uid-token') => {
+  const response = ok(id, token); response.data.user_id = uid; return response;
+};
+async function loginWithUid(id, uid) {
+  player = id; const pending = LGameAPI.login(); await tick();
+  requests.at(-1).respond(uidResponse(id, uid)); await pending;
+}
+
+test('userId可直接读取，兼容缺失或无效编号并保留不透明字符串', async () => {
+  setup(); assert.equal(LGameAPI.userId, '');
+  for (const uid of ['User7K3P9X2DQ6WR', '52757745-f452-480f-9c2f-95ff5856d998', undefined, null, 123, '   ']) {
+    await loginWithUid('A', uid);
+    assert.equal(LGameAPI.userId, typeof uid === 'string' && uid.trim() ? uid : '');
+    assert.equal(LGameAPI.openId, 'A'); assert.equal(LGameAPI.token, 'uid-token');
+    assert.equal(LGameAPI.isLoggedIn, true);
+  }
+});
+
+test('换账号、清会话和修改登录上下文同步清空userId', async () => {
+  setup(); await loginWithUid('A', 'UserAAAAAAAAAAAA');
+  await login('B'); assert.equal(LGameAPI.userId, '');
+  for (const reset of [
+    () => LGameAPI.clearSession(),
+    () => LGameAPI.init({ baseUrl: 'https://other.test/api/v1' }),
+    () => { LGameAPI.appid = 'other-app'; },
+    () => { LGameAPI.devId = 'other-developer'; },
+  ]) {
+    setup(); await loginWithUid('A', 'UserAAAAAAAAAAAA');
+    reset(); assert.equal(LGameAPI.userId, ''); assert.equal(LGameAPI.openId, '');
+  }
+  for (const key of ['platform', 'dev']) {
+    setup(); let platform = 'harmony', dev = false;
+    LGameAPI.init({ baseUrl: 'https://example.test/api/v1', getPlatform: () => platform, isDevMode: () => dev });
+    await loginWithUid('A', 'UserAAAAAAAAAAAA');
+    if (key === 'platform') platform = 'web'; else dev = true;
+    assert.equal(LGameAPI.userId, ''); assert.equal(LGameAPI.openId, '');
+  }
+});
+
+test('静默刷新同步更新userId，旧服务端响应不会沿用旧编号', async () => {
+  for (const uid of ['UserBBBBBBBBBBBB', undefined]) {
+    setup(); await loginWithUid('A', 'UserAAAAAAAAAAAA');
+    const save = LGameAPI.saveGameData({ game_key: 'demo', data: '存档' });
+    await tick(); requests[1].respond(expired); await tick();
+    requests[2].respond(uidResponse('A', uid, 'fresh-token')); await tick();
+    assert.equal(LGameAPI.userId, uid || ''); assert.equal(LGameAPI.token, 'fresh-token');
+    assert.equal(Object.hasOwn(requests[3].body, 'user_id'), false);
+    requests[3].respond({ code: 0, data: { saved: true } }); assert.equal((await save).code, 0);
+  }
+});
+
+test('清会话后迟到的登录响应不能覆盖新账号userId', async () => {
+  setup(); const old = LGameAPI.login(); const rejected = assert.rejects(old, changed); await tick();
+  const oldRequest = requests[0]; LGameAPI.clearSession();
+  await loginWithUid('B', 'UserBBBBBBBBBBBB');
+  oldRequest.respond(uidResponse('A', 'UserAAAAAAAAAAAA')); await rejected;
+  assert.equal(LGameAPI.userId, 'UserBBBBBBBBBBBB'); assert.equal(LGameAPI.openId, 'B');
+});

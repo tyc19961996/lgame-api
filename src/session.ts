@@ -9,6 +9,7 @@ export class SessionChangedError extends Error {
 export interface SessionSnapshot {
   generation: number;
   openId: string;
+  userId: string;
   token: string;
   expired: boolean;
   platform?: string;
@@ -16,7 +17,7 @@ export interface SessionSnapshot {
   baseUrl?: string;
 }
 
-let current: SessionSnapshot = { generation: 0, openId: '', token: '', expired: false };
+let current: SessionSnapshot = { generation: 0, openId: '', userId: '', token: '', expired: false };
 export function getSession(): SessionSnapshot {
   // 自定义适配器可动态改变平台/开发模式，不能沿用原配置的已登录身份。
   if (current.platform !== undefined && (current.platform !== getPlatform() || current.dev !== isDevMode() || current.baseUrl !== getBaseUrl())) clearSession();
@@ -27,7 +28,7 @@ export function bindLoginContext(platform: string, dev: boolean, baseUrl: string
   current = { ...current, platform, dev, baseUrl };
 }
 export function clearSession(): void {
-  current = { generation: current.generation + 1, openId: '', token: '', expired: false };
+  current = { generation: current.generation + 1, openId: '', userId: '', token: '', expired: false };
 }
 export function markTokenExpired(token: string): void {
   if (current.token === token) current = { ...current, expired: true };
@@ -40,14 +41,14 @@ export function assertGeneration(generation: number): void {
   getSession();
   if (generation !== current.generation) throw new SessionChangedError();
 }
-/** 一次替换整个对象，使 openId 与 token 同步可见；同账户刷新不改变代次。 */
-export function commitSession(generation: number, openId: string, token: string, refresh: boolean): void {
+/** 一次替换整个对象，使 openId、userId 与 token 同步可见；同账户刷新不改变代次。 */
+export function commitSession(generation: number, openId: string, token: string, refresh: boolean, userId: string): void {
   assertGeneration(generation);
   if (refresh && current.openId && current.openId !== openId) {
     clearSession();
     throw new SessionChangedError();
   }
   const switched = current.openId && current.openId !== openId;
-  current = { generation: current.generation + (switched ? 1 : 0), openId, token, expired: false,
+  current = { generation: current.generation + (switched ? 1 : 0), openId, userId, token, expired: false,
     platform: getPlatform(), dev: isDevMode(), baseUrl: getBaseUrl() };
 }

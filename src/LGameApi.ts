@@ -71,6 +71,11 @@ export class LGameAPI {
     return this._openId;
   }
 
+  /** 当前内部用户编号；未登录或服务端未返回有效编号时为空字符串。 */
+  public static get userId(): string {
+    return getSession().userId;
+  }
+
   /** 当前 JWT token */
   public static get token(): string {
     return this._token;
@@ -189,7 +194,8 @@ export class LGameAPI {
       if (!data || typeof data.open_id !== 'string' || !data.open_id.trim() || typeof data.token !== 'string' || !data.token.trim()) {
         throw new Error('登录响应缺少有效 open_id 或 token');
       }
-      commitSession(generation, data.open_id, data.token, refresh);
+      const userId = typeof data.user_id === 'string' && data.user_id.trim() ? data.user_id : '';
+      commitSession(generation, data.open_id, data.token, refresh, userId);
     }
     return response;
   }

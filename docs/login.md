@@ -168,6 +168,8 @@ const result = await LGameAPI.login();
 
 支持内部账号的新服务端在原有 `open_id`、`token` 之外返回字符串 `user_id`。SDK 的 `OpenIdResponseData` 将其定义为 `user_id?: string`，以兼容旧服务端可能不返回该字段的情况。`LGameAPI.login()` 的类型仍为 `Promise<ApiResponse<OpenIdResponseData>>`，保留完整响应；平台 `open_id` 不会替换为内部用户编号，已有游戏继续使用 `LGameAPI.openId` 和 `LGameAPI.token`。
 
+`LGameAPI.userId` 与 `LGameAPI.openId` 一样是只读会话属性，无需额外请求。成功登录及静默刷新时同步保存服务端返回的编号；未登录、清除会话、切换登录上下文或响应未返回有效编号时为空字符串，旧编号不会沿用到新会话。登录失败不会提交新的会话数据。`userId` 表示身份编号，不表示 token 当前有效；判断登录状态使用 `LGameAPI.isLoggedIn`。
+
 业务接口的调用参数不变，SDK 仍携带 token，服务端自行解析内部玩家编号。无需把 UID 填入 OpenID 字段或主动传入业务请求。数据库重置后是否保留历史进度由部署方案决定，不由新增响应字段决定。
 
 新账号编号采用固定 User 前缀和 12 位随机大写字母数字，无分隔符。已有账号的编号可能为 UUID，SDK 将其作为不透明字符串处理，不检查前缀或长度。不要从编号推导玩家身份；后续请求继续使用 token。编号生成后保持不变，客户端无需把 user_id 加到请求中。
@@ -175,7 +177,7 @@ const result = await LGameAPI.login();
 
 ~~~typescript
 const loginRes = await LGameAPI.login();
-const userNumber: string | undefined = loginRes.data.user_id;
+const userNumber: string = LGameAPI.userId;
 // 设置界面使用“用户编号”标签；确认字段存在后才提供复制。
 if (userNumber) {
   console.log('用户编号', userNumber);
