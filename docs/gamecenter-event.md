@@ -81,7 +81,7 @@ const channel = options?.query?.channel || 'other';
   "message": "Success",
   "data": {
     "submitted": true,
-    "out_biz_no": "397a679f41dd0fc38d217a082af31f4e"
+    "out_biz_no": "0123456789abcdef0123456789abcdef"
   }
 }
 ```

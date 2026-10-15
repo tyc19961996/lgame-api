@@ -52,7 +52,7 @@ HarmonyOS NEXT 从 1.8.0 使用 POST 授权码和 gamePlayerId 核验，接入�
   "message": "Success",
   "data": {
     "open_id": "oXXXX_xxxxxxxxxxxxxxxx",
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "token": "YOUR_PLAYER_JWT",
     "user_id": "User7K3P9X2DQ6WR"
   },
   "timestamp": "1760000000000"
