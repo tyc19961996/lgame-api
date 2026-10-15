@@ -10,7 +10,9 @@ import { getSession, assertSession, markTokenExpired, SessionChangedError } from
 /**
  * 底层发送 HTTP 请求（不含重试逻辑）
  */
-export function rawRequest<T>(path: string, method: 'GET' | 'POST', data?: Record<string, any>, token?: string): Promise<ApiResponse<T>> {
+export interface RequestOptions { timeoutMs?: number; }
+
+export function rawRequest<T>(path: string, method: 'GET' | 'POST', data?: Record<string, any>, token?: string, options?: RequestOptions): Promise<ApiResponse<T>> {
 
   return new Promise((resolve, reject) => {
     let url = `${getBaseUrl()}${path}`;
@@ -37,6 +39,10 @@ export function rawRequest<T>(path: string, method: 'GET' | 'POST', data?: Recor
     const xhr = new XMLHttpRequest();
     xhr.open(method, url, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
+    if (options?.timeoutMs !== undefined) {
+      xhr.timeout = options.timeoutMs;
+      xhr.ontimeout = () => reject(new Error('网络请求超时'));
+    }
 
     xhr.onreadystatechange = function () {
       if (xhr.readyState === 4) {
@@ -65,10 +71,10 @@ export function rawRequest<T>(path: string, method: 'GET' | 'POST', data?: Recor
  * 发送 HTTP 请求（自动处理 token 过期重试）
  * 收到 code=402 时自动重新登录，然后用新 token 重发请求
  */
-export async function httpRequest<T>(path: string, method: 'GET' | 'POST', data?: Record<string, any>, token?: string): Promise<ApiResponse<T>> {
+export async function httpRequest<T>(path: string, method: 'GET' | 'POST', data?: Record<string, any>, token?: string, options?: RequestOptions): Promise<ApiResponse<T>> {
   const session = getSession();
   if (token && token !== session.token) throw new SessionChangedError();
-  const response = await rawRequest<T>(path, method, data, token);
+  const response = await rawRequest<T>(path, method, data, token, options);
   assertSession(session);
 
   // 延迟导入避免循环依赖
@@ -81,7 +87,7 @@ export async function httpRequest<T>(path: string, method: 'GET' | 'POST', data?
     assertSession(session);
     if (ok) {
       const retryToken = getSession().token;
-      const retry = await rawRequest<T>(path, method, data, retryToken);
+      const retry = await rawRequest<T>(path, method, data, retryToken, options);
       assertSession(session);
       if (retry.code === 402) markTokenExpired(retryToken);
       return retry;

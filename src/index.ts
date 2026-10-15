@@ -8,3 +8,5 @@ export {
 export type { LGameApiOptions, PlatformAdapter, PlatformLoginResult } from './config.js';
 export { SessionChangedError } from './session.js';
 export * from './types.js';
+
+export { AnalyticsError } from './analytics.js';

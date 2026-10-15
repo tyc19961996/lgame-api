@@ -13,6 +13,9 @@
  */
 import type {
   ApiResponse,
+  AnalyticsProperties,
+  AnalyticsTrackOptions,
+  AnalyticsFlushResult,
   OpenIdResponseData,
   SubmitScoreParams,
   SubmitScoreResponseData,
@@ -44,6 +47,8 @@ import { isDevMode, getPlatform, platformLogin, applyConfig, getBaseUrl } from '
 import type { LGameApiOptions } from './config.js';
 import { rawRequest, httpRequest } from './http.js';
 import { getSession, clearSession, assertGeneration, bindLoginContext, commitSession, assertSession, SessionChangedError } from './session.js';
+
+import { configureAnalytics, trackEvent, flushAnalytics, analyticsLoginCompleted } from './analytics.js';
 
 export class LGameAPI {
 
@@ -102,16 +107,28 @@ export class LGameAPI {
   /**
    * 初始化 SDK（必须在 login() 之前调用）
    * @param options.baseUrl 服务端接口地址（必填），如 https://example.com/api/v1/
+   * @param options.analyticsBaseUrl 独立采集根地址，可选；配置后通过短期凭据直传事件
    * @param options.appid 小程序 AppID，等同于设置 LGameAPI.appid
    * @param options.devId 开发模式自定义 ID，等同于设置 LGameAPI.devId
    * @param options.isDevMode / getPlatform / platformLogin 可选，按项目重写平台适配逻辑，不传使用默认实现
    */
   public static init(options: LGameApiOptions): void {
     this.clearSession();
-    applyConfig(options);
+    applyConfig({ ...options, analyticsBaseUrl: options.analyticsBaseUrl ?? '' });
+    configureAnalytics(options.onAnalyticsResult);
     if (options.appid) this.appid = options.appid;
     if (options.devId) this.devId = options.devId;
   }
+
+  // ==================== 自定义打点 ====================
+
+  /** 入队并返回事件ID；登录前由SDK暂存，取得有效user_id后自动发送。 */
+  public static track(eventName: string, properties: AnalyticsProperties = {}, options: AnalyticsTrackOptions = {}): string {
+    return trackEvent(eventName, properties, options);
+  }
+
+  /** 提交调用时的队列快照；检查results中的rejected和可选error判断实际结果。 */
+  public static flushEvents(): Promise<AnalyticsFlushResult> { return flushAnalytics(); }
 
   // ==================== 服务端时间 ====================
 
@@ -196,6 +213,7 @@ export class LGameAPI {
       }
       const userId = typeof data.user_id === 'string' && data.user_id.trim() ? data.user_id : '';
       commitSession(generation, data.open_id, data.token, refresh, userId);
+      if (!refresh) analyticsLoginCompleted();
     }
     return response;
   }

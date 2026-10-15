@@ -1,6 +1,8 @@
 # lgame-api
 
-小游戏通用服务端 API 客户端 SDK。支持微信 / 支付宝 / 抖音 / 快手 / Bilibili / OPPO 小游戏平台及 HarmonyOS NEXT native 适配，提供服务端时间、登录、排行榜、游戏存档、远程配置、邀请任务、支付宝广告奖励与游戏中心事件上报等能力。
+小游戏通用服务端 API 客户端 SDK。支持微信 / 支付宝 / 抖音 / 快手 / Bilibili / OPPO 小游戏平台及 HarmonyOS NEXT native 适配，提供自定义打点、服务端时间、登录、排行榜、游戏存档、远程配置、邀请任务、支付宝广告奖励与游戏中心事件上报等能力。
+
+当前源码版本为1.10.0；本轮仅同步Git，未执行npm发布。版本边界与验证结果见[源码交接记录](./docs/analytics-release-status.md)。
 
 ## 安装
 
@@ -9,7 +11,7 @@
 npm install lgame-api
 
 # 或从 GitHub 安装（替换为实际仓库地址）
-npm install github:<your-name>/lgame-api
+npm install github:tyc19961996/lgame-api#main
 ```
 
 ## 快速开始
@@ -21,6 +23,7 @@ import { LGameAPI } from 'lgame-api';
 
 LGameAPI.init({
   baseUrl: 'https://your-server.com/api/v1/', // 必填：你的服务端地址
+  // analyticsBaseUrl: 'https://analytics.example.com/', // 可选：启用独立采集直传
   appid: '你的小程序AppID',                     // 可选：等同于 LGameAPI.appid = 'xxx'
 });
 
@@ -58,6 +61,7 @@ LGameAPI.init({
 
 各模块的详细接入文档见 [docs/](./docs)：
 
+- [自定义打点、独立采集直传与网络恢复（1.10.0）](./docs/analytics.md)
 - [服务端时间戳](./docs/timestamp.md)
 - [登录](./docs/login.md)
 - [HarmonyOS NEXT 登录与会话隔离（1.8.0）](./docs/harmony-login.md)
@@ -73,6 +77,7 @@ LGameAPI.init({
 ```bash
 npm install        # 安装依赖
 npm run build      # 编译到 dist/
+npm test           # 运行接口、会话、打点与公开类型测试
 npm publish        # 发布（prepublishOnly 会自动先 build）
 ```
 

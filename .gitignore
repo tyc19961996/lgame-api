@@ -1,2 +1,18 @@
 node_modules/
 dist/
+
+# 本地联调包、日志和测试产物
+*.tgz
+*.log
+coverage/
+*.tsbuildinfo
+
+# 私有配置和密钥不得进入public仓库
+.env
+.env.*
+!.env.example
+private/
+*.pem
+*.key
+*.p12
+*.pfx

@@ -207,9 +207,9 @@ test('换账号、清会话和修改登录上下文同步清空userId', async ()
   }
 });
 
-test('静默刷新同步更新userId，旧服务端响应不会沿用旧编号', async () => {
-  for (const uid of ['UserBBBBBBBBBBBB', undefined]) {
-    setup(); await loginWithUid('A', 'UserAAAAAAAAAAAA');
+test('静默刷新同UID更新令牌，始终缺UID的旧服务端保持兼容', async () => {
+  for (const uid of ['UserAAAAAAAAAAAA', undefined]) {
+    setup(); await loginWithUid('A', uid);
     const save = LGameAPI.saveGameData({ game_key: 'demo', data: '存档' });
     await tick(); requests[1].respond(expired); await tick();
     requests[2].respond(uidResponse('A', uid, 'fresh-token')); await tick();
@@ -225,4 +225,12 @@ test('清会话后迟到的登录响应不能覆盖新账号userId', async () =>
   await loginWithUid('B', 'UserBBBBBBBBBBBB');
   oldRequest.respond(uidResponse('A', 'UserAAAAAAAAAAAA')); await rejected;
   assert.equal(LGameAPI.userId, 'UserBBBBBBBBBBBB'); assert.equal(LGameAPI.openId, 'B');
+});
+
+test('旧服务端首次补UID保留旧业务会话，同UID刷新不改变账号', async () => {
+  setup(); await login('A');
+  const save = LGameAPI.saveGameData({ game_key: 'demo', data: '旧版本存档' }); await tick(); requests[1].respond(expired); await tick();
+  requests[2].respond(uidResponse('A', 'UserAAAAAAAAAAAA', 'fresh-token')); await tick();
+  assert.equal(LGameAPI.userId, 'UserAAAAAAAAAAAA'); assert.equal(requests[3].body.token, 'fresh-token');
+  requests[3].respond({ code: 0, data: { saved: true } }); assert.equal((await save).code, 0);
 });

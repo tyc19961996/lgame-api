@@ -258,3 +258,30 @@ export interface PercentileResponseData {
   rank: number | null;
   total: number;
 }
+
+/** 打点属性只接受JSON值；数值必须有限，不能包含循环引用。 */
+export type AnalyticsPropertyValue = string | number | boolean | null | AnalyticsPropertyValue[] | { [key: string]: AnalyticsPropertyValue };
+export type AnalyticsProperties = Record<string, AnalyticsPropertyValue>;
+export interface AnalyticsTrackOptions {
+  /** 后台登记的事件Schema版本；默认为1，SDK不会猜测最新版本。 */
+  schemaVersion?: number;
+}
+/** 客户端事件不含platform、appid或user_id，归属由服务端登录令牌决定。 */
+export interface AnalyticsEvent {
+  event_id: string;
+  event_key: string;
+  schema_version: number;
+  occurred_at: string;
+  properties: AnalyticsProperties;
+}
+export interface AnalyticsEventError { code: number | string; message: string; field?: string; }
+export interface AnalyticsEventResult { event_id: string; status: 'accepted' | 'duplicate' | 'rejected'; error?: AnalyticsEventError; }
+export interface AnalyticsResponseData { results: AnalyticsEventResult[]; }
+export interface AnalyticsFlushResult {
+  /** accepted或duplicate表示已确认；rejected为永久失败，不再重试。 */
+  results: AnalyticsEventResult[];
+  /** 包含发送期间新入队及暂时失败的剩余事件。 */
+  pendingCount: number;
+  /** 网络、超时、批次错误或异常响应；未确认事件仍可手动重试。 */
+  error?: AnalyticsEventError;
+}

@@ -31,7 +31,7 @@ Harmony 使用 `POST /getOpenId` JSON `{ platform: 'harmony', appid, code, gameP
 - 成功响应必须具有非空字符串 `open_id` 和 `token`，否则抛错。两者通过一次会话对象替换同步更新，不会出现混合账户凭据。
 - `isLoggedIn` 表示已接受有效字段的登录响应、会话未清除、且当前 token 未收到 402。它不在本地解析或验证 JWT，也不能预测服务端撤销。402 刷新期间及失败后为 false；成功刷新恢复 true。
 - `clearSession(): void` 清空会话并递增代次，使旧 native 登录、服务器登录、业务成功响应和重试结果失效。已发送请求无法撤销服务器上的写入，游戏仍需在账号事件开始时立即暂停新上传。
-- 业务请求绑定发送时的账户和会话代次。A 的请求不能拿 B 的 token 重试；静默刷新遇到 B 时清除会话并抛出 `SessionChangedError`，其 `code` 固定为 `'SESSION_CHANGED'`。手动 `login()` 可接受新账户，并使旧账户请求失效。
+- 业务请求绑定发送时的账户和会话代次。A 的请求不能拿 B 的 token 重试；静默刷新遇到 B 时清除会话并抛出 `SessionChangedError`，其 `code` 固定为 `'SESSION_CHANGED'`。手动 `login()` 可接受新账户，并使旧账户请求失效。1.9.0也核对已知`user_id`，相同`open_id`但UID改变或缺失同样触发身份隔离。
 - 再次调用 `init()` 也会清会话；不要在每个业务请求前反复初始化。
 - 直接修改公开 `appid` 或 `devId` 会立即清会话。动态平台、开发模式或服务地址变化时，下一次读取会话或处理请求也会失效，防止相同 openId 跨应用复用凭据。
 

@@ -4,6 +4,8 @@
  * - isDevMode / getPlatform / platformLogin 提供默认实现，可在 init 时按项目重写
  */
 
+import type { AnalyticsFlushResult } from './types.js';
+
 /** 平台适配函数集合 */
 export interface PlatformLoginResult {
   code?: string;
@@ -26,10 +28,14 @@ export interface PlatformAdapter {
 export interface LGameApiOptions extends Partial<PlatformAdapter> {
   /** 服务端接口地址，如 https://example.com/api/v1/ */
   baseUrl: string;
+  /** 独立采集服务根地址；省略时沿用游戏API。只允许HTTPS或本地回环HTTP。 */
+  analyticsBaseUrl?: string;
   /** 小程序 AppID，等同于设置 LGameAPI.appid */
   appid?: string;
   /** 开发模式下的自定义 ID，等同于设置 LGameAPI.devId */
   devId?: string;
+  /** 每次自动或手动打点提交的结果，包含永久拒绝和暂时错误。 */
+  onAnalyticsResult?: (result: AnalyticsFlushResult) => void;
 }
 
 // ==================== 默认实现（与旧版行为一致） ====================
@@ -93,6 +99,18 @@ export function defaultPlatformLogin(): Promise<any> {
 // ==================== 当前生效配置 ====================
 
 let currentBaseUrl: string = '';
+let currentAnalyticsBaseUrl = '';
+/** 不依赖小游戏运行时可能缺失的URL构造器。 */
+function normalizeAnalyticsBaseUrl(value: string | undefined): string {
+  if (value === undefined || value === '') return '';
+  if (typeof value !== 'string') throw new Error('analyticsBaseUrl必须是HTTPS地址');
+  const parsed = /^(https?):\/\/(\[[0-9a-f:]+\]|[a-z0-9.-]+)(?::([0-9]{1,5}))?(\/[^?#\\\s]*)?$/i.exec(value);
+  if (!parsed || (parsed[3] && (+parsed[3] < 1 || +parsed[3] > 65535)) || (parsed[1].toLowerCase() !== 'https' && !['localhost', '127.0.0.1', '[::1]'].includes(parsed[2].toLowerCase()))) {
+    throw new Error('analyticsBaseUrl必须是无账号、查询或片段的HTTPS地址；HTTP仅支持本地回环测试');
+  }
+  return value.endsWith('/') ? value : `${value}/`;
+}
+export function getAnalyticsBaseUrl(): string { return currentAnalyticsBaseUrl; }
 
 const currentAdapter: PlatformAdapter = {
   isDevMode: defaultIsDevMode,
@@ -105,6 +123,8 @@ const currentAdapter: PlatformAdapter = {
  * 未传入的适配函数保持当前值不变
  */
 export function applyConfig(options: LGameApiOptions): void {
+  const analyticsBaseUrl = 'analyticsBaseUrl' in options ? normalizeAnalyticsBaseUrl(options.analyticsBaseUrl) : currentAnalyticsBaseUrl;
+  currentAnalyticsBaseUrl = analyticsBaseUrl;
   if (options.baseUrl) {
     currentBaseUrl = options.baseUrl.endsWith('/') ? options.baseUrl : `${options.baseUrl}/`;
   }
