@@ -267,12 +267,25 @@ export interface AnalyticsTrackOptions {
   schemaVersion?: number;
 }
 /** 客户端事件不含platform、appid或user_id，归属由服务端登录令牌决定。 */
+export interface AnalyticsEventContext {
+  app_version: string | null;
+  sdk_version: string;
+  os_name: string | null;
+  device_model: string | null;
+  is_mock: false;
+  /** 北京时间 YYYY/MM/DD HH:mm:ss。 */
+  client_event_at: string;
+}
 export interface AnalyticsEvent {
   event_id: string;
   event_key: string;
   schema_version: number;
   occurred_at: string;
   properties: AnalyticsProperties;
+  context?: AnalyticsEventContext;
+  session_id?: string;
+  session_started_at?: string;
+  event_seq?: number;
 }
 export interface AnalyticsEventError { code: number | string; message: string; field?: string; }
 export interface AnalyticsEventResult { event_id: string; status: 'accepted' | 'duplicate' | 'rejected'; error?: AnalyticsEventError; }

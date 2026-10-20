@@ -1,4 +1,4 @@
-# 自定义打点（SDK 1.10.0）
+# 自定义打点（SDK 1.11.0）
 
 使用前，服务端需支持登录返回 `user_id`，并完成应用登记、来源授权和事件Schema配置。原通道需支持 `POST /api/v1/analytics/events`；直传需支持下文凭据和独立采集协议。客户端沿用 `LGameAPI.init` 的 `baseUrl` 与登录流程。可选 `analyticsBaseUrl` 启用独立采集直传：原游戏API只签发短期采集凭据，事件直接发送到采集服务；归属由服务端签发的凭据确定。省略或传空字符串时继续使用原 `analytics/events` 通道。
 
@@ -13,6 +13,9 @@ LGameAPI.init({
   baseUrl: 'https://example.com/api/v1/',
   analyticsBaseUrl: 'https://analytics.example.com/', // 可选：独立采集服务根地址
   appid: 'your-app-id',
+  app_version: '1.0.0', // 可选：游戏发布版本
+  os_name: 'Android', // 可选：调用方已知的系统名称
+  device_model: '示例机型', // 可选：调用方已知的设备型号，SDK不自行探测
   onAnalyticsResult: result => {
     for (const item of result.results) {
       if (item.status === 'rejected') {
@@ -83,13 +86,13 @@ if (result.error) {
 
 `flushEvents` 串行分批提交任务开始时的队列快照，发送期间新入队事件会保留。并发调用会复用当前提交任务，包括已经开始的自动任务；`pendingCount` 给出任务结束时剩余数量，调用方可在合适时机再次调用。已由自动任务确认的事件可从初始化回调观察，后续空队列调用返回 `{ results: [], pendingCount: 0 }`。
 
-每个打点批次有10秒总截止时间，覆盖凭据申请、采集HTTP、401换凭据、402静默平台登录、登录HTTP和重试；截止后返回`ANALYTICS_TIMEOUT`并释放打点提交任务，未确认事件留队列，迟到结果不再确认队列，直传任务也不会在截止后继续发起事件请求或401换凭据，其他业务共享的静默刷新可以继续。网络错误、XHR请求超时、503和504会返回 `error`，未确认事件保留，下一次提交保持相同事件ID、发生时间和属性。异常或缺失的事件确认也会返回 `ANALYTICS_RESPONSE_INVALID` 并保留未确认事件。批次错误400、应用未注册410、应用或来源停用411会把该批事件终结为逐条 `rejected`，同时设置批次 `error`。调用方需分别检查 `results` 和 `error`，不能把Promise正常返回当作全部成功。
+每个打点批次有10秒总截止时间，覆盖能力探测、凭据申请、采集HTTP、401换凭据、402静默平台登录、登录HTTP和重试；截止后返回`ANALYTICS_TIMEOUT`并释放打点提交任务，未确认事件留队列，迟到结果不再确认队列，直传任务也不会在截止后继续发起事件请求或401换凭据，其他业务共享的静默刷新可以继续。网络错误、XHR请求超时、503和504会返回 `error`，未确认事件保留，下一次提交保持相同事件ID、发生时间和属性。异常或缺失的事件确认也会返回 `ANALYTICS_RESPONSE_INVALID` 并保留未确认事件。批次错误400、应用未注册410、应用或来源停用411会把该批事件终结为逐条 `rejected`，同时设置批次 `error`。调用方需分别检查 `results` 和 `error`，不能把Promise正常返回当作全部成功。
 
 未登录调用 `flushEvents` 返回当前待发送数量而不联网；登录成功后由 SDK 自动提交。提交期间账号或应用改变会拒绝为 `SessionChangedError`（`code: 'SESSION_CHANGED'`），调用方应丢弃该旧任务结果。
 
 ## 队列与生命周期
 
-- 登录前只暂存。显式 login 成功后立即排空此前队列；已登录阶段首次入队后5秒自动提交，积累到50条立即提交。每次请求最多50条，总UTF8 JSON不超过256KiB（原通道包含登录token，直传只含events）；属性JSON最多8KiB。
+- 登录前只暂存。显式 login 成功后立即排空此前队列；已登录阶段首次入队后5秒自动提交，积累到50条立即提交。每次请求最多50条，总UTF8 JSON不超过256KiB（原通道包含登录token，直传只含events）；属性JSON最多8KiB。自动context和会话字段也计入批次与内存队列的UTF8字节上限。
 - 内存队列上限1000条或1MiB，以先达到的限制为准，包含正在发送但尚未确认的事件。溢出同步抛出 `ANALYTICS_QUEUE_FULL`，已入队事件保留。队列不持久化，进程退出时尚未确认事件会丢失。
 - 暂时失败保留原事件，并按5、10、20、30秒封顶持续退避，成功后恢复正常5秒批量调度。失败期间达到50条也不绕过退避；显式 `flushEvents` 仍可立即尝试。SDK对当前平台可用的成对前台/联网监听注册恢复通知，回前台或恢复联网会唤醒已有队列，不需要游戏加队列、身份判断或手动补发。无可用监听的平台继续定时退避。所有自动结果通过 `onAnalyticsResult` 观察，回调异常会被捕获。
 - `clearSession`、重新 `init`、AppID或开发ID改变、登录换账号或已知UID改变/缺失、动态平台/开发模式/服务地址或采集地址改变都会清理旧队列、计时器和缓存凭据。切换前需先完成希望保留的事件提交；旧事件不会使用新会话上报。
@@ -123,8 +126,50 @@ SDK自动携带原有登录token；事件本身不提交platform、appid或user_
 
 登录并取得有效用户编号后，SDK先向原 `baseUrl` 发送 `POST analytics/credential`，沿用游戏API原有JSON中的玩家token参数。成功响应为 `{ code: 0, data: { token, expires_at }, message, timestamp }`，其中 `expires_at` 是Unix秒。凭据由服务端签发，默认有效15分钟，SDK在到期前60秒更新；同一会话的在途申请单飞共享。凭据仅缓存在内存，业务无需读取或保存。
 
-随后向 `${analyticsBaseUrl}v1/events` 发送 `POST`，请求头为 `Authorization: Bearer <采集凭据>`，JSON正文严格为上述 `{ events }`。SDK不会向该采集主机发送玩家JWT，也不在正文添加token、user、identity、appid或platform。独立采集发生错误时不会改向游戏API转发事件。
+随后向 `${analyticsBaseUrl}v1/events` 发送 `POST`，请求头为 `Authorization: Bearer <采集凭据>`，JSON正文为 `{ events }`；单条事件是否包含扩展字段由下文能力协商决定。SDK不会向该采集主机发送玩家JWT，也不在正文添加token、user、identity、appid或platform。独立采集发生错误时不会改向游戏API转发事件。
 
 采集HTTP401时，SDK清理被拒绝的凭据、重新申请并用原事件最多重试一次；依据HTTP状态判定，正文同名错误码不会单独触发更新。再次401会返回错误并保留事件，后续由原退避机制重试。只有原游戏API凭据接口的玩家令牌过期 `code=402` 沿用现有静默登录，采集服务响应不触发玩家登录。
 
 采集服务的 `APP_NOT_REGISTERED`、`APP_DISABLED`、`BINDING_DISABLED`、`INVALID_BATCH`、`INVALID_IDENTITY`、`INVALID_INPUT` 按原通道永久错误语义终结本批事件，结果保留原字符串错误码。`COLLECTOR_BUSY`、`DATABASE_ERROR`、网络/超时及未识别错误保留事件等待重试。HTTP非2xx不会被正文 `code=0` 当作成功确认。
+
+## 自动上下文与操作会话（1.11.0）
+
+`app_version`、`os_name`、`device_model` 是 `init` 的三个可选字符串字段。每项最多128字符，禁止C0/C1控制字符，去除两端空白后为空则记录为 `null`；省略也记录为 `null`，传入非字符串会同步报错。SDK不探测操作系统或设备型号，也不从业务属性猜测这些值。每次 `track` 都复制当前初始化字段，后续配置更新只影响新事件。
+
+支持扩展协议时，事件保留原五个字段，并增加以下字段：
+
+```json
+{
+  "context": {
+    "app_version": "1.0.0",
+    "sdk_version": "1.11.0",
+    "os_name": "Android",
+    "device_model": "示例机型",
+    "is_mock": false,
+    "client_event_at": "2026/10/20 08:00:00"
+  },
+  "session_id": "ce432d7d-3529-4588-9615-a7093259ef81",
+  "session_started_at": "2026-10-20T00:00:00.123Z",
+  "event_seq": 1
+}
+```
+
+`sdk_version` 来自包内版本模块，与本包版本一致。`context.is_mock` 固定为 `false`，真实SDK事件不接受游戏自行标记为模拟玩家。`client_event_at` 在 `track` 时以北京时间生成，格式固定为 `YYYY/MM/DD HH:mm:ss`；原有 `occurred_at` 继续使用含毫秒的ISO时间，不改变语义。`properties` 保留原始业务快照；旧Schema若要求其中的同名属性，游戏仍需按原Schema传入，SDK不覆盖、不删除或移入 `context`。
+
+`session_id` 是SDK生成的UUID，`session_started_at` 是初始化或会话切换时记录的含毫秒ISO时间，首个事件即使延后产生也保留该开始时刻，`event_seq` 从1开始安全递增；同一毫秒的事件也有不同序号。登录前暂存和登录后事件沿用同一操作会话，同账户令牌刷新不重置。进程冷启动、显式 `clearSession`、换号或已知UID改变、游戏地址/采集地址/平台/AppID/开发模式或开发ID切换会新建操作会话。
+
+同来源重复 `init` 继续清理旧登录状态、在途请求和事件队列，以保持原有身份隔离；操作会话ID和序号会保留，重新登录同账户后继续递增。重复初始化后登录到其他账户会重置操作会话并清理等待期间的临时事件。初始化三字段可更新为新版本或新设备描述，已发送或待重试事件的快照不变。
+
+## 采集能力协商与旧服务端兼容
+
+只有显式配置 `analyticsBaseUrl` 的直传路径会探测公开的 `GET ${analyticsBaseUrl}v1/capabilities`。请求不携带JWT、采集凭据或正文，服务端支持响应为：
+
+```json
+{ "code": 0, "data": { "event_context_version": 1 } }
+```
+
+仅收到成功HTTP状态及上述数值能力时发送扩展字段。HTTP404、网络错误、1500毫秒超时或无效响应均使用原协议，事件严格只有 `event_id`、`event_key`、`schema_version`、`occurred_at`、`properties`。未配置独立地址时始终使用原五字段，不向游戏API探测能力。扩展采集服务需开放此GET路由及浏览器跨域访问。
+
+成功能力缓存在当前来源和登录代次内；404缓存15秒，网络、超时和无效响应不长期缓存，后续新事件可重新探测。账号、来源或初始化代次改变后，旧在途能力响应无法污染新状态。探测计入每批10秒总截止时间，截止后不再发起事件POST。
+
+每条事件在首次尝试提交前固定协议及完整发送快照；网络重试、能力后来升级/降级和HTTP401换采集凭据都不改变同一 `event_id` 的载荷。一个批次可能同时包含先前失败的原协议事件和后来创建的扩展协议事件，服务端应逐条识别。元数据和时间不会在重试时重新生成。自动上下文与能力协商需要 `lgame-api@1.11.0` 及支持扩展协议的独立采集服务；原有游戏API无需升级此协议。

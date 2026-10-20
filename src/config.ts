@@ -30,6 +30,10 @@ export interface LGameApiOptions extends Partial<PlatformAdapter> {
   baseUrl: string;
   /** 独立采集服务根地址；省略时沿用游戏API。只允许HTTPS或本地回环HTTP。 */
   analyticsBaseUrl?: string;
+  /** 游戏版本、系统名称与设备型号；由调用方提供，不探测设备。 */
+  app_version?: string;
+  os_name?: string;
+  device_model?: string;
   /** 小程序 AppID，等同于设置 LGameAPI.appid */
   appid?: string;
   /** 开发模式下的自定义 ID，等同于设置 LGameAPI.devId */
@@ -42,17 +46,19 @@ export interface LGameApiOptions extends Partial<PlatformAdapter> {
 
 /** 默认：无任何小游戏全局对象时视为开发模式 */
 export function defaultIsDevMode(): boolean {
-  return !window['wx'] && !window['ks'] && !window['tt'] && !window['my'] && !window['bl'] && !window['qg'];
+  const scope = typeof window === 'undefined' ? {} : window;
+  return !scope['wx'] && !scope['ks'] && !scope['tt'] && !scope['my'] && !scope['bl'] && !scope['qg'];
 }
 
 /** 默认：根据全局对象识别平台 */
 export function defaultGetPlatform(): string {
-  if (window['qg']) return 'oppo';
-  if (window['my']) return 'ali';
-  if (window['bl']) return 'bilibili';
-  if (window['ks']) return 'ks';
-  if (window['tt']) return 'bytedance';
-  if (window['wx']) return 'wechat';
+  const scope = typeof window === 'undefined' ? {} : window;
+  if (scope['qg']) return 'oppo';
+  if (scope['my']) return 'ali';
+  if (scope['bl']) return 'bilibili';
+  if (scope['ks']) return 'ks';
+  if (scope['tt']) return 'bytedance';
+  if (scope['wx']) return 'wechat';
   return 'web';
 }
 
@@ -98,6 +104,13 @@ export function defaultPlatformLogin(): Promise<any> {
 
 // ==================== 当前生效配置 ====================
 
+let metadata: { app_version: string | null; os_name: string | null; device_model: string | null } = { app_version: null, os_name: null, device_model: null };
+export function getAnalyticsMetadata(): typeof metadata { return { ...metadata }; }
+function normalizeMetadata(value: unknown, field: string): string | null {
+  if (value === undefined) return null;
+  if (typeof value !== 'string' || value.length > 128 || /[\u0000-\u001f\u007f-\u009f]/.test(value)) throw new Error(field + '必须是不超过128字符且无控制符的字符串');
+  return value.trim() || null;
+}
 let currentBaseUrl: string = '';
 let currentAnalyticsBaseUrl = '';
 /** 不依赖小游戏运行时可能缺失的URL构造器。 */
@@ -124,7 +137,9 @@ const currentAdapter: PlatformAdapter = {
  */
 export function applyConfig(options: LGameApiOptions): void {
   const analyticsBaseUrl = 'analyticsBaseUrl' in options ? normalizeAnalyticsBaseUrl(options.analyticsBaseUrl) : currentAnalyticsBaseUrl;
+  const nextMetadata = { app_version: normalizeMetadata(options.app_version, 'app_version'), os_name: normalizeMetadata(options.os_name, 'os_name'), device_model: normalizeMetadata(options.device_model, 'device_model') };
   currentAnalyticsBaseUrl = analyticsBaseUrl;
+  metadata = nextMetadata;
   if (options.baseUrl) {
     currentBaseUrl = options.baseUrl.endsWith('/') ? options.baseUrl : `${options.baseUrl}/`;
   }

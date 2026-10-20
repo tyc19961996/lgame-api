@@ -6,6 +6,55 @@ import { getAnalyticsBaseUrl } from './config.js';
 import { httpRequest } from './http.js';
 import { AnalyticsError } from './analytics-error.js';
 
+/** 能力端点完全公开；不发送玩家 JWT、采集凭据或请求正文。 */
+let capability: { base: string; supported: boolean; until: number } | undefined;
+let capabilityPending: Promise<boolean> | undefined;
+onSessionGenerationChange(() => { capability = undefined; capabilityPending = undefined; });
+export async function supportsEventContext(session: SessionSnapshot, ensureActive: () => void): Promise<boolean> {
+  ensureActive(); assertSession(session);
+  const base = getAnalyticsBaseUrl();
+  if (!base) return false;
+  if (capability?.base === base && capability.until > Date.now()) return capability.supported;
+  if (capabilityPending) return capabilityPending;
+  const promise = new Promise<boolean>((resolve, reject) => {
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const finish = (supported: boolean, cacheMs = 0): void => {
+      if (settled) return;
+      settled = true; clearTimeout(timer);
+      try {
+        ensureActive(); assertSession(session);
+        if (base !== getAnalyticsBaseUrl()) throw new Error('采集来源已改变');
+        if (cacheMs) capability = { base, supported, until: Date.now() + cacheMs };
+        resolve(supported);
+      } catch (error) { reject(error); }
+    };
+    timer = setTimeout(() => finish(false), 1500);
+    const handle = timer as unknown as { unref?: () => void };
+    if (typeof handle?.unref === 'function') handle.unref();
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', base + 'v1/capabilities', true);
+      xhr.timeout = 1500;
+      xhr.onerror = xhr.ontimeout = () => finish(false);
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState !== 4) return;
+        if (xhr.status === 404) { finish(false, 15000); return; }
+        try {
+          const value = JSON.parse(xhr.responseText);
+          const supported = xhr.status >= 200 && xhr.status < 300 && value?.code === 0 && value?.data?.event_context_version === 1;
+          finish(supported, supported ? Number.MAX_SAFE_INTEGER - Date.now() : 0);
+        } catch { finish(false); }
+      };
+      xhr.send();
+    } catch { finish(false); }
+  });
+  capabilityPending = promise;
+  const finish = () => { if (capabilityPending === promise) capabilityPending = undefined; };
+  void promise.then(finish, finish);
+  return promise;
+}
+
 interface Credential { token: string; expires_at: number; }
 export type AnalyticsSubmissionResponse = Omit<ApiResponse<AnalyticsResponseData>, 'code'> & { code: number | string };
 let cached: Credential | undefined;
@@ -67,6 +116,7 @@ function directRequest(baseUrl: string, events: AnalyticsEvent[], token: string,
 
 /** 总截止时间由队列管理；每次异步继续前核对，避免截止后再发迟到请求。 */
 export async function submitAnalyticsBatch(events: AnalyticsEvent[], session: SessionSnapshot, ensureActive: () => void, timeoutMs: number): Promise<AnalyticsSubmissionResponse> {
+  ensureActive(); assertSession(session);
   const baseUrl = getAnalyticsBaseUrl();
   if (!baseUrl) return httpRequest<AnalyticsResponseData>('analytics/events', 'POST', { events }, getSession().token, { timeoutMs });
   let credential = await getCredential(session, timeoutMs);

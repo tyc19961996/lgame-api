@@ -2,7 +2,7 @@
 
 小游戏通用服务端 API 客户端 SDK。支持微信 / 支付宝 / 抖音 / 快手 / Bilibili / OPPO 小游戏平台及 HarmonyOS NEXT native 适配，提供自定义打点、服务端时间、登录、排行榜、游戏存档、远程配置、邀请任务、支付宝广告奖励与游戏中心事件上报等能力。
 
-当前源码版本为1.10.0；本轮仅同步Git，未执行npm发布。版本边界与验证结果见[源码交接记录](./docs/analytics-release-status.md)。
+当前源码版本为1.11.0，已构建本地安装包；尚未提交、推送或执行npm发布。版本边界与验证结果见[源码交接记录](./docs/analytics-release-status.md)。
 
 ## 安装
 
@@ -24,6 +24,9 @@ import { LGameAPI } from 'lgame-api';
 LGameAPI.init({
   baseUrl: 'https://your-server.com/api/v1/', // 必填：你的服务端地址
   // analyticsBaseUrl: 'https://analytics.example.com/', // 可选：启用独立采集直传
+  app_version: '1.0.0', // 可选：游戏版本，供自动打点上下文使用
+  os_name: 'Android', // 可选：由调用方提供的系统名称
+  device_model: '示例机型', // 可选：由调用方提供，SDK不读取设备型号
   appid: '你的小程序AppID',                     // 可选：等同于 LGameAPI.appid = 'xxx'
 });
 
@@ -61,7 +64,7 @@ LGameAPI.init({
 
 各模块的详细接入文档见 [docs/](./docs)：
 
-- [自定义打点、独立采集直传与网络恢复（1.10.0）](./docs/analytics.md)
+- [自定义打点、自动上下文、能力协商与网络恢复（1.11.0）](./docs/analytics.md)
 - [服务端时间戳](./docs/timestamp.md)
 - [登录](./docs/login.md)
 - [HarmonyOS NEXT 登录与会话隔离（1.8.0）](./docs/harmony-login.md)

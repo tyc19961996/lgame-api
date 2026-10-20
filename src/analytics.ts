@@ -1,6 +1,7 @@
 /** SDK统一管理有界打点队列；登录前暂存，登录成功后自动发送。 */
 import type { AnalyticsEvent, AnalyticsEventError, AnalyticsEventResult, AnalyticsFlushResult, AnalyticsProperties, AnalyticsPropertyValue, AnalyticsResponseData, AnalyticsTrackOptions } from './types.js';
-import { submitAnalyticsBatch } from './analytics-transport.js';
+import { supportsEventContext, submitAnalyticsBatch } from './analytics-transport.js';
+import { createEventContext, confirmAnalyticsIdentity } from './analytics-context.js';
 import { AnalyticsError } from './analytics-error.js';
 export { AnalyticsError } from './analytics-error.js';
 import { getSession, assertSession, bindLoginContext, onSessionGenerationChange, SessionChangedError } from './session.js';
@@ -16,7 +17,7 @@ const FLUSH_INTERVAL_MS = 5000;
 const SUBMISSION_TIMEOUT_MS = 10000;
 const MAX_RETRY_INTERVAL_MS = 30000;
 
-interface QueueEntry { event: AnalyticsEvent; bytes: number; }
+interface QueueEntry { event: AnalyticsEvent; bytes: number; wire?: AnalyticsEvent; }
 interface QueueState {
   entries: QueueEntry[];
   bytes: number;
@@ -151,7 +152,8 @@ export function trackEvent(eventName: string, properties: AnalyticsProperties = 
   if (!Number.isSafeInteger(schemaVersion) || schemaVersion < 1) throw new AnalyticsError('ANALYTICS_PARAM_INVALID', 'schemaVersion必须是正整数');
   const snapshot = snapshotProperties(properties);
   if (utf8Bytes(JSON.stringify(snapshot)) > MAX_PROPERTIES_BYTES) throw new AnalyticsError('ANALYTICS_EVENT_TOO_LARGE', '单个事件properties的UTF8 JSON不能超过8KiB');
-  const event: AnalyticsEvent = { event_id: eventId(), event_key: eventName, schema_version: schemaVersion, occurred_at: new Date().toISOString(), properties: snapshot };
+  const now = new Date();
+  const event: AnalyticsEvent = { event_id: eventId(), event_key: eventName, schema_version: schemaVersion, occurred_at: now.toISOString(), properties: snapshot, ...createEventContext(now, eventId) };
   const bytes = utf8Bytes(JSON.stringify(event)) + 1;
   // 属性访问器或自定义运行时可能在同步求值期间切换身份，入队前重新核对。
   assertSession(session);
@@ -240,7 +242,17 @@ async function submitSnapshot(target: QueueState, session: SessionSnapshot, snap
     }
     if (!batch.length) { error = { code: 'ANALYTICS_BATCH_TOO_LARGE', message: '当前事件请求超过256KiB' }; break; }
     let response;
-    try { response = await withSubmissionDeadline(ensureActive => submitAnalyticsBatch(batch.map(entry => entry.event), session, ensureActive, SUBMISSION_TIMEOUT_MS)); }
+    try { response = await withSubmissionDeadline(async ensureActive => {
+      const extended = batch.some(entry => !entry.wire) ? await supportsEventContext(session, ensureActive) : false;
+      ensureActive(); assertSession(session);
+      for (const entry of batch) {
+        if (!entry.wire) {
+          const event = entry.event;
+          entry.wire = extended ? event : { event_id: event.event_id, event_key: event.event_key, schema_version: event.schema_version, occurred_at: event.occurred_at, properties: event.properties };
+        }
+      }
+      return submitAnalyticsBatch(batch.map(entry => entry.wire), session, ensureActive, SUBMISSION_TIMEOUT_MS);
+    }); }
     catch (caught) {
       assertSession(session);
       if (caught instanceof SessionChangedError) throw caught;
@@ -295,9 +307,10 @@ export function flushAnalytics(automatic = false): Promise<AnalyticsFlushResult>
 }
 
 /** 登录成功后启动已有队列，业务调用方无需重复发送或手动flush。 */
-export function analyticsLoginCompleted(): void {
-  if (!queue.entries.length) return;
+export function analyticsLoginCompleted(flush = true): void {
   const session = getSession();
+  if (confirmAnalyticsIdentity(session.openId, session.userId)) { cancelTimer(queue); queue = emptyQueue(); }
+  if (!flush || !queue.entries.length) return;
   if (!session.token || !session.openId) return;
   if (!session.userId) {
     notifyResult(queue, { results: [], pendingCount: queue.entries.length, error: { code: 'ANALYTICS_UID_REQUIRED', message: '登录响应缺少user_id，事件保留等待有效登录' } });

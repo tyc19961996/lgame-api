@@ -10,7 +10,12 @@ class XHR {
   headers = {};
   open(method, url) { this.method = method; this.url = url; }
   setRequestHeader(key, value) { this.headers[key.toLowerCase()] = value; }
-  send(body) { this.body = body ? JSON.parse(body) : undefined; requests.push(this); }
+  send(body) {
+    this.body = body ? JSON.parse(body) : undefined;
+    // 原有测试显式模拟不支持扩展协议的旧采集端。
+    if (this.url.endsWith('/v1/capabilities')) { queueMicrotask(() => this.respond({}, 404)); return; }
+    requests.push(this);
+  }
   respond(body, status = 200) {
     this.status = status; this.readyState = 4; this.responseText = JSON.stringify(body); this.onreadystatechange();
   }

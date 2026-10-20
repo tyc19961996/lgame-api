@@ -43,11 +43,12 @@ import type {
   MockPlayer,
 } from './types.js';
 
-import { isDevMode, getPlatform, platformLogin, applyConfig, getBaseUrl } from './config.js';
+import { isDevMode, getPlatform, platformLogin, applyConfig, getBaseUrl, getAnalyticsBaseUrl } from './config.js';
 import type { LGameApiOptions } from './config.js';
 import { rawRequest, httpRequest } from './http.js';
 import { getSession, clearSession, assertGeneration, bindLoginContext, commitSession, assertSession, SessionChangedError } from './session.js';
 
+import { initializeAnalyticsSession } from './analytics-context.js';
 import { configureAnalytics, trackEvent, flushAnalytics, analyticsLoginCompleted } from './analytics.js';
 
 export class LGameAPI {
@@ -113,11 +114,13 @@ export class LGameAPI {
    * @param options.isDevMode / getPlatform / platformLogin 可选，按项目重写平台适配逻辑，不传使用默认实现
    */
   public static init(options: LGameApiOptions): void {
-    this.clearSession();
-    applyConfig({ ...options, analyticsBaseUrl: options.analyticsBaseUrl ?? '' });
+    initializeAnalyticsSession(() => {
+      this.clearSession();
+      applyConfig({ ...options, analyticsBaseUrl: options.analyticsBaseUrl ?? '' });
+      if (options.appid) this.appid = options.appid;
+      if (options.devId) this.devId = options.devId;
+    }, () => JSON.stringify([getBaseUrl(), getAnalyticsBaseUrl(), getPlatform(), this.appid, isDevMode(), this.devId]));
     configureAnalytics(options.onAnalyticsResult);
-    if (options.appid) this.appid = options.appid;
-    if (options.devId) this.devId = options.devId;
   }
 
   // ==================== 自定义打点 ====================
@@ -213,7 +216,7 @@ export class LGameAPI {
       }
       const userId = typeof data.user_id === 'string' && data.user_id.trim() ? data.user_id : '';
       commitSession(generation, data.open_id, data.token, refresh, userId);
-      if (!refresh) analyticsLoginCompleted();
+      analyticsLoginCompleted(!refresh);
     }
     return response;
   }
