@@ -1,4 +1,4 @@
-# 自定义打点（SDK 1.11.0）
+# 自定义打点（SDK 1.12.0）
 
 使用前，服务端需支持登录返回 `user_id`，并完成应用登记、来源授权和事件Schema配置。原通道需支持 `POST /api/v1/analytics/events`；直传需支持下文凭据和独立采集协议。客户端沿用 `LGameAPI.init` 的 `baseUrl` 与登录流程。可选 `analyticsBaseUrl` 启用独立采集直传：原游戏API只签发短期采集凭据，事件直接发送到采集服务；归属由服务端签发的凭据确定。省略或传空字符串时继续使用原 `analytics/events` 通道。
 
@@ -19,10 +19,10 @@ LGameAPI.init({
   onAnalyticsResult: result => {
     for (const item of result.results) {
       if (item.status === 'rejected') {
-        console.warn('事件永久拒绝', item.event_id, item.error?.code, item.error?.field);
+        console.warn('事件永久拒绝', item.event_id, item.error?.code, item.error?.field, item.error?.message);
       }
     }
-    if (result.error) console.warn('批次上报失败', result.error.code, result.pendingCount);
+    if (result.error) console.warn('批次上报失败', result.error.code, result.error.message, result.pendingCount);
   },
 });
 
@@ -33,7 +33,7 @@ const login = await LGameAPI.login();
 if (login.code !== 0) throw new Error('登录失败');
 
 try {
-  const eventId = LGameAPI.track('level_start', { level_id: 1, first_attempt: true }, { schemaVersion: 1 });
+  const eventId = LGameAPI.track('level_start', { level_id: 1, first_attempt: true });
   console.log('已入队', eventId);
 } catch (error) {
   if (error instanceof AnalyticsError) console.warn('入队失败', error.code, error.message);
@@ -44,11 +44,11 @@ try {
 签名：
 
 ```typescript
-LGameAPI.track(eventName: string, properties?: AnalyticsProperties, options?: { schemaVersion?: number }): string;
+LGameAPI.track(eventName: string, properties?: AnalyticsProperties): string;
 LGameAPI.flushEvents(): Promise<AnalyticsFlushResult>;
 ```
 
-事件名以英文字母开头，最长64字符，只允许字母、数字和下划线。Schema版本由调用方明确指定，省略时固定使用1；事件需在后台登记对应版本，SDK不会猜测最新版本。属性只接受JSON对象，内部值可包含有限数值、字符串、布尔、null、数组和普通对象；函数、undefined、BigInt、Date、非有限数值及循环引用会被拒绝。
+事件名以英文字母开头，最长64字符，只允许字母、数字和下划线。规则版本由统计服务端自动匹配：同一事件的全部启用版本独立校验，完整符合任意一个就接收，多个匹配选择最高版本；非必填字段允许省略。SDK默认不发送schema_version，不再填1。请先升级支持自动匹配的统计服务，再升级SDK；未升级的旧统计服务可能拒绝无版本事件。旧的第三参数及其中数字schemaVersion已标记废弃，显式传入时仍保留在请求中以兼容已有调用，但新服务端不以此限制选版。属性只接受JSON对象，内部值可包含有限数值、字符串、布尔、null、数组和普通对象；函数、undefined、BigInt、Date、非有限数值及循环引用会被拒绝。
 
 `track` 同步生成UUID和ISO发生时间，并复制属性快照。调用方后续修改原对象不会改变待发送事件。返回事件ID表示已入队，服务端确认结果需通过 `flushEvents` 或 `onAnalyticsResult` 读取。
 
@@ -109,7 +109,6 @@ if (result.error) {
     {
       "event_id": "52757745-f452-480f-9c2f-95ff5856d998",
       "event_key": "level_start",
-      "schema_version": 1,
       "occurred_at": "2026-10-13T00:00:00.000Z",
       "properties": { "level_id": 1 }
     }
@@ -168,7 +167,7 @@ SDK自动携带原有登录token；事件本身不提交platform、appid或user_
 { "code": 0, "data": { "event_context_version": 1 } }
 ```
 
-仅收到成功HTTP状态及上述数值能力时发送扩展字段。HTTP404、网络错误、1500毫秒超时或无效响应均使用原协议，事件严格只有 `event_id`、`event_key`、`schema_version`、`occurred_at`、`properties`。未配置独立地址时始终使用原五字段，不向游戏API探测能力。扩展采集服务需开放此GET路由及浏览器跨域访问。
+仅收到成功HTTP状态及上述数值能力时发送扩展字段。HTTP404、网络错误、1500毫秒超时或无效响应均使用原协议，事件只保留 `event_id`、`event_key`、`occurred_at`、`properties`，以及旧调用显式提供时的兼容字段 `schema_version`。未配置独立地址时始终使用不含扩展上下文的事件协议，不向游戏API探测能力。扩展采集服务需开放此GET路由及浏览器跨域访问。
 
 成功能力缓存在当前来源和登录代次内；404缓存15秒，网络、超时和无效响应不长期缓存，后续新事件可重新探测。账号、来源或初始化代次改变后，旧在途能力响应无法污染新状态。探测计入每批10秒总截止时间，截止后不再发起事件POST。
 

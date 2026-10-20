@@ -59,8 +59,8 @@ test('同来源重复初始化不重置操作会话，换号和显式清理才�
 test('失败重试保留同一元数据与协议，能力后来变化不改旧事件载荷', async () => {
   await setup(); fail=true; const first=await track(); cap=0; fail=false; await LGameAPI.flushEvents(); assert.deepEqual(wire.at(-1)[0],first);
 });
-test('旧采集端和旧游戏转发只发送原五字段，旧协议重试不升级载荷', async () => {
-  await setup(); cap=0; fail=true; const first=await track(); assert.deepEqual(Object.keys(first),['event_id','event_key','schema_version','occurred_at','properties']);
+test('不支持扩展的采集端和游戏转发省略默认版本，重试不升级载荷', async () => {
+  await setup(); cap=0; fail=true; const first=await track(); assert.deepEqual(Object.keys(first),['event_id','event_key','occurred_at','properties']);
   cap=1; fail=false; await LGameAPI.flushEvents(); assert.deepEqual(wire.at(-1)[0],first);
   await setup({ analyticsBaseUrl: '' }); const legacy=await track(); assert.equal(legacy.context,undefined); assert.equal(probes,0);
 });

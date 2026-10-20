@@ -79,7 +79,7 @@ test('旧服务端缺UID允许旧业务，但不能向打点接口发送', async
   await tick(); requests.at(-1).respond(response({ saved: true })); assert.equal((await saved).code, 0);
 });
 
-test('track快照属性并生成UUID和ISO时间，HTTP只自动携带token且默认schema版本为1', async () => {
+test('track快照属性并生成UUID和ISO时间，HTTP自动携带token且默认不发送规则版本', async () => {
   setup(); await login();
   const properties = { score: 10, tags: ['开始'], detail: { level: 1 } };
   const id = LGameAPI.track('level_start', properties); properties.score = 99; properties.tags.push('后来'); properties.detail.level = 2;
@@ -88,14 +88,14 @@ test('track快照属性并生成UUID和ISO时间，HTTP只自动携带token且�
   assert.equal(req.method, 'POST'); assert.equal(req.timeout, 10000);
   assert.deepEqual(Object.keys(req.body).sort(), ['events', 'token']); assert.equal(req.body.token, 'jwt-A');
   assert.deepEqual(req.body.events[0].properties, { score: 10, tags: ['开始'], detail: { level: 1 } });
-  assert.equal(req.body.events[0].schema_version, 1); assert.equal(req.body.events[0].event_key, 'level_start');
+  assert.equal(Object.hasOwn(req.body.events[0], 'schema_version'), false); assert.equal(req.body.events[0].event_key, 'level_start');
   assert.equal(req.body.events[0].event_id, id); assert.equal(new Date(req.body.events[0].occurred_at).toISOString(), req.body.events[0].occurred_at);
   accept(req); assert.deepEqual(await pending, { results: [{ event_id: id, status: 'accepted' }], pendingCount: 0 });
   assert.equal(observed[0].results[0].event_id, id);
   assert.deepEqual(await LGameAPI.flushEvents(), { results: [], pendingCount: 0 }); assert.equal(eventRequests().length, 1);
 });
 
-test('显式schema版本保留；非法key、版本及非JSON属性同步报错', async () => {
+test('废弃的显式版本仍兼容；非法key、版本及非JSON属性同步报错', async () => {
   setup(); await login();
   const cycle = {}; cycle.self = cycle;
   for (const key of ['', '1start', 'two words', 'a'.repeat(65)]) assert.throws(() => LGameAPI.track(key, {}), hasCode('ANALYTICS_PARAM_INVALID'));

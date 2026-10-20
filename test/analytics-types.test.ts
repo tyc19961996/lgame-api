@@ -1,10 +1,13 @@
 import { LGameAPI, AnalyticsError } from '../src/index.js';
 import type { AnalyticsProperties, AnalyticsTrackOptions, AnalyticsFlushResult, AnalyticsEvent, AnalyticsEventResult, LGameApiOptions } from '../src/index.js';
 const properties: AnalyticsProperties = { score: 10, first: true, labels: ['开始', null], detail: { level: 1 } };
+// 废弃参数仍允许旧项目编译；新调用省略版本。
 const options: AnalyticsTrackOptions = { schemaVersion: 2 };
+const autoEventId: string = LGameAPI.track('level_start', properties);
+void autoEventId;
 const eventId: string = LGameAPI.track('level_start', properties, options);
 const pending: Promise<AnalyticsFlushResult> = LGameAPI.flushEvents();
-const event: AnalyticsEvent = { event_id: eventId, event_key: 'level_start', schema_version: 2, occurred_at: '2026-10-13T00:00:00.000Z', properties };
+const event: AnalyticsEvent = { event_id: eventId, event_key: 'level_start', occurred_at: '2026-10-13T00:00:00.000Z', properties };
 const rejected: AnalyticsEventResult = { event_id: eventId, status: 'rejected', error: { code: 'PROPERTY_TYPE_INVALID', message: '属性类型无效', field: 'properties.score' } };
 const init: LGameApiOptions = { baseUrl: 'https://example.com/api/v1/', analyticsBaseUrl: 'https://analytics.example.com/', app_version: '1.2', os_name: 'Android', device_model: '示例型号', onAnalyticsResult: result => { const pendingCount: number = result.pendingCount; void pendingCount; } };
 const error: Error = new AnalyticsError('ANALYTICS_LOGIN_REQUIRED', '请先登录');

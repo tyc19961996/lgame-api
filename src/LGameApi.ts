@@ -126,6 +126,9 @@ export class LGameAPI {
   // ==================== 自定义打点 ====================
 
   /** 入队并返回事件ID；登录前由SDK暂存，取得有效user_id后自动发送。 */
+  public static track(eventName: string, properties?: AnalyticsProperties): string;
+  /** @deprecated 第三个版本参数仅为兼容旧调用保留，新调用请省略，由服务端自动匹配。 */
+  public static track(eventName: string, properties: AnalyticsProperties | undefined, options: AnalyticsTrackOptions | undefined): string;
   public static track(eventName: string, properties: AnalyticsProperties = {}, options: AnalyticsTrackOptions = {}): string {
     return trackEvent(eventName, properties, options);
   }

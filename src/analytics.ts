@@ -148,12 +148,12 @@ export function trackEvent(eventName: string, properties: AnalyticsProperties = 
   }
   if (session.token && session.openId && !session.userId) throw new AnalyticsError('ANALYTICS_UID_REQUIRED', '登录响应缺少user_id，请升级服务端并重新登录后打点');
   if (typeof eventName !== 'string' || !/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(eventName)) throw new AnalyticsError('ANALYTICS_PARAM_INVALID', 'eventName必须以英文字母开头，最长64字符，仅允许字母、数字和下划线');
-  const schemaVersion = options?.schemaVersion === undefined ? 1 : options.schemaVersion;
-  if (!Number.isSafeInteger(schemaVersion) || schemaVersion < 1) throw new AnalyticsError('ANALYTICS_PARAM_INVALID', 'schemaVersion必须是正整数');
+  const schemaVersion = options?.schemaVersion;
+  if (schemaVersion !== undefined && (!Number.isSafeInteger(schemaVersion) || schemaVersion < 1)) throw new AnalyticsError('ANALYTICS_PARAM_INVALID', 'schemaVersion必须是正整数');
   const snapshot = snapshotProperties(properties);
   if (utf8Bytes(JSON.stringify(snapshot)) > MAX_PROPERTIES_BYTES) throw new AnalyticsError('ANALYTICS_EVENT_TOO_LARGE', '单个事件properties的UTF8 JSON不能超过8KiB');
   const now = new Date();
-  const event: AnalyticsEvent = { event_id: eventId(), event_key: eventName, schema_version: schemaVersion, occurred_at: now.toISOString(), properties: snapshot, ...createEventContext(now, eventId) };
+  const event: AnalyticsEvent = { event_id: eventId(), event_key: eventName, ...(schemaVersion !== undefined ? { schema_version: schemaVersion } : {}), occurred_at: now.toISOString(), properties: snapshot, ...createEventContext(now, eventId) };
   const bytes = utf8Bytes(JSON.stringify(event)) + 1;
   // 属性访问器或自定义运行时可能在同步求值期间切换身份，入队前重新核对。
   assertSession(session);
@@ -248,7 +248,7 @@ async function submitSnapshot(target: QueueState, session: SessionSnapshot, snap
       for (const entry of batch) {
         if (!entry.wire) {
           const event = entry.event;
-          entry.wire = extended ? event : { event_id: event.event_id, event_key: event.event_key, schema_version: event.schema_version, occurred_at: event.occurred_at, properties: event.properties };
+          entry.wire = extended ? event : { event_id: event.event_id, event_key: event.event_key, ...(event.schema_version !== undefined ? { schema_version: event.schema_version } : {}), occurred_at: event.occurred_at, properties: event.properties };
         }
       }
       return submitAnalyticsBatch(batch.map(entry => entry.wire), session, ensureActive, SUBMISSION_TIMEOUT_MS);

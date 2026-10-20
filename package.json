@@ -1,6 +1,6 @@
 {
   "name": "lgame-api",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "type": "module",
   "description": "小游戏通用服务端 API 客户端 SDK（自定义打点、服务端时间、登录、排行榜、存档、远程配置、邀请任务、支付宝广告奖励/游戏中心事件上报）",
   "main": "dist/index.js",
@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node test/timestamp-api.test.js && node test/oppo-login.test.js && node test/session-login.test.js && node test/analytics-api.test.js && node test/analytics-direct.test.js && node test/analytics-context.test.js && tsc --noEmit --skipLibCheck --target ES2020 --module ES2020 --moduleResolution bundler test/player-id-types.test.ts test/analytics-types.test.ts",
+    "test": "npm run build && node test/timestamp-api.test.js && node test/oppo-login.test.js && node test/session-login.test.js && node test/analytics-api.test.js && node test/analytics-direct.test.js && node test/analytics-context.test.js && tsc --noEmit --skipLibCheck --target ES2020 --module ES2020 --moduleResolution bundler test/player-id-types.test.ts test/analytics-types.test.ts && tsc --noEmit --strict --skipLibCheck --target ES2020 --module ES2020 --moduleResolution bundler test/analytics-compat-types.test.ts",
     "prepare": "npm run build",
     "prepublishOnly": "npm run build"
   },

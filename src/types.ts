@@ -263,7 +263,7 @@ export interface PercentileResponseData {
 export type AnalyticsPropertyValue = string | number | boolean | null | AnalyticsPropertyValue[] | { [key: string]: AnalyticsPropertyValue };
 export type AnalyticsProperties = Record<string, AnalyticsPropertyValue>;
 export interface AnalyticsTrackOptions {
-  /** 后台登记的事件Schema版本；默认为1，SDK不会猜测最新版本。 */
+  /** @deprecated 服务端自动匹配全部启用版本。仅为兼容旧调用保留，不再默认填1；新调用请省略。 */
   schemaVersion?: number;
 }
 /** 客户端事件不含platform、appid或user_id，归属由服务端登录令牌决定。 */
@@ -279,7 +279,8 @@ export interface AnalyticsEventContext {
 export interface AnalyticsEvent {
   event_id: string;
   event_key: string;
-  schema_version: number;
+  /** 旧调用的兼容字段，实际入库版本由服务端匹配。默认不发送。 */
+  schema_version?: number;
   occurred_at: string;
   properties: AnalyticsProperties;
   context?: AnalyticsEventContext;
