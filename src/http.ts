@@ -80,6 +80,7 @@ export async function httpRequest<T>(path: string, method: 'GET' | 'POST', data?
   // 延迟导入避免循环依赖
   if (response.code === 402 && token && session.openId) {
     markTokenExpired(token);
+    if (session.platform === '233apk') return response;
     const { LGameAPI } = await import('./LGameApi.js');
     assertSession(session);
     // 迟到的旧 token 响应复用同账户的新 token，避免重复消耗授权码。

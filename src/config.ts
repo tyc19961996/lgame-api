@@ -15,12 +15,19 @@ export interface PlatformLoginResult {
   [key: string]: any;
 }
 
+/** 233 APK 原生登录成功返回的凭据，仅用于登录交换。 */
+export interface Apk233PlatformLoginResult extends PlatformLoginResult {
+  success: true;
+  uid: string;
+  sid: string;
+}
+
 export interface PlatformAdapter {
   /** 当前是否为开发模式 */
   isDevMode: () => boolean;
-  /** 当前平台标识（wechat / ali / ks / bytedance / bilibili / oppo / harmony / web 等） */
+  /** 当前平台标识（wechat / ali / ks / bytedance / bilibili / oppo / harmony / 233apk / web 等） */
   getPlatform: () => string;
-  /** 平台登录，需包含 code；Harmony 还需 success=true 和 gamePlayerId。 */
+  /** 平台登录。233 APK 返回 success、uid 和 sid，其他平台使用 code。 */
   platformLogin: () => Promise<PlatformLoginResult>;
 }
 
@@ -113,12 +120,17 @@ function normalizeMetadata(value: unknown, field: string): string | null {
 }
 let currentBaseUrl: string = '';
 let currentAnalyticsBaseUrl = '';
-/** 不依赖小游戏运行时可能缺失的URL构造器。 */
+/** 支持可能缺失 URL 构造器的小游戏运行时。 */
+export function isSecureApiUrl(value: string): boolean {
+  const parsed = /^(https?):\/\/(\[[0-9a-f:]+\]|[a-z0-9.-]+)(?::([0-9]{1,5}))?(\/[^?#\\\s]*)?$/i.exec(value);
+  if (!parsed || (parsed[3] && (+parsed[3] < 1 || +parsed[3] > 65535))) return false;
+  return parsed[1].toLowerCase() === 'https' || ['localhost', '127.0.0.1', '[::1]'].includes(parsed[2].toLowerCase());
+}
+
 function normalizeAnalyticsBaseUrl(value: string | undefined): string {
   if (value === undefined || value === '') return '';
   if (typeof value !== 'string') throw new Error('analyticsBaseUrl必须是HTTPS地址');
-  const parsed = /^(https?):\/\/(\[[0-9a-f:]+\]|[a-z0-9.-]+)(?::([0-9]{1,5}))?(\/[^?#\\\s]*)?$/i.exec(value);
-  if (!parsed || (parsed[3] && (+parsed[3] < 1 || +parsed[3] > 65535)) || (parsed[1].toLowerCase() !== 'https' && !['localhost', '127.0.0.1', '[::1]'].includes(parsed[2].toLowerCase()))) {
+  if (!isSecureApiUrl(value)) {
     throw new Error('analyticsBaseUrl必须是无账号、查询或片段的HTTPS地址；HTTP仅支持本地回环测试');
   }
   return value.endsWith('/') ? value : `${value}/`;
@@ -168,8 +180,8 @@ export function getPlatform(): string {
 
 /**
  * 平台登录
- * @returns Promise<any> 返回平台登录成功的 res（需包含 code）
+ * @returns 平台原生登录结果
  */
-export function platformLogin(): Promise<any> {
+export function platformLogin(): Promise<PlatformLoginResult> {
   return currentAdapter.platformLogin();
 }

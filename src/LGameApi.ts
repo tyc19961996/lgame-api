@@ -43,7 +43,7 @@ import type {
   MockPlayer,
 } from './types.js';
 
-import { isDevMode, getPlatform, platformLogin, applyConfig, getBaseUrl, getAnalyticsBaseUrl } from './config.js';
+import { isDevMode, getPlatform, platformLogin, applyConfig, getBaseUrl, getAnalyticsBaseUrl, isSecureApiUrl } from './config.js';
 import type { LGameApiOptions } from './config.js';
 import { rawRequest, httpRequest } from './http.js';
 import { getSession, clearSession, assertGeneration, bindLoginContext, commitSession, assertSession, SessionChangedError } from './session.js';
@@ -162,6 +162,8 @@ export class LGameAPI {
    * @returns 是否登录成功
    */
   public static async _silentLogin(): Promise<boolean> {
+    // 233 APK 的原生登录可能弹窗，后台 402 由游戏展示重新登录入口。
+    if (getPlatform() === '233apk') return false;
     const session = getSession();
     try {
       const response = await this._startLogin(true);
@@ -188,13 +190,18 @@ export class LGameAPI {
 
   private static async _performLogin(generation: number, appid: string, platform: string, devId: string, dev: boolean, refresh: boolean): Promise<ApiResponse<OpenIdResponseData>> {
     if (platform === 'harmony' && dev) throw new Error('Harmony 登录必须使用 native 平台适配，不支持开发登录替代');
+    if (platform === '233apk' && dev) throw new Error('233 APK 登录必须使用原生平台适配');
     const baseUrl = getBaseUrl();
+    if (platform === '233apk' && !isSecureApiUrl(baseUrl)) {
+      throw new Error('233 APK 登录地址必须是 HTTPS，HTTP 仅用于本地回环测试');
+    }
     bindLoginContext(platform, dev, baseUrl);
     const check = () => {
       assertGeneration(generation);
       if (appid !== this.appid || platform !== this.platform || devId !== this.devId || dev !== isDevMode() || baseUrl !== getBaseUrl()) throw new SessionChangedError();
     };
     let response: ApiResponse<OpenIdResponseData>;
+    let apk233Uid: string | undefined;
     if (dev) {
       response = await rawRequest<OpenIdResponseData>('dev/login', 'POST', { appid, dev_id: devId });
     } else {
@@ -202,14 +209,24 @@ export class LGameAPI {
       const loginRes = await platformLogin();
       check();
       const validString = (value: unknown) => typeof value === 'string' && value.trim().length > 0;
-      if (loginRes?.success === false || !validString(loginRes?.code)) throw new Error('平台登录未返回有效授权码');
-      if (platform === 'harmony' && (loginRes?.success !== true || !validString(loginRes?.gamePlayerId))) {
-        throw new Error('Harmony 平台登录未完成或缺少 gamePlayerId');
+      if (platform === '233apk') {
+        if (loginRes?.success !== true || !validString(loginRes.uid) || !validString(loginRes.sid)) {
+          throw new Error('233 APK 登录未返回有效 uid 和 sid');
+        }
+        apk233Uid = loginRes.uid;
+        response = await rawRequest<OpenIdResponseData>('getOpenId', 'POST', {
+          appid, platform, uid: apk233Uid, sid: loginRes.sid
+        });
+      } else {
+        if (loginRes?.success === false || !validString(loginRes?.code)) throw new Error('平台登录未返回有效授权码');
+        if (platform === 'harmony' && (loginRes?.success !== true || !validString(loginRes?.gamePlayerId))) {
+          throw new Error('Harmony 平台登录未完成或缺少 gamePlayerId');
+        }
+        response = await rawRequest<OpenIdResponseData>('getOpenId', platform === 'harmony' ? 'POST' : 'GET', {
+          appid, platform, code: loginRes.code,
+          ...(platform === 'harmony' ? { gamePlayerId: loginRes.gamePlayerId } : {})
+        });
       }
-      response = await rawRequest<OpenIdResponseData>('getOpenId', platform === 'harmony' ? 'POST' : 'GET', {
-        appid, platform, code: loginRes.code,
-        ...(platform === 'harmony' ? { gamePlayerId: loginRes.gamePlayerId } : {})
-      });
     }
     check();
     if (response.code === 0) {
@@ -218,6 +235,9 @@ export class LGameAPI {
         throw new Error('登录响应缺少有效 open_id 或 token');
       }
       const userId = typeof data.user_id === 'string' && data.user_id.trim() ? data.user_id : '';
+      if (apk233Uid !== undefined && (data.open_id !== apk233Uid || !userId)) {
+        throw new Error('233 APK 登录响应缺少内部用户编号或玩家身份不一致');
+      }
       commitSession(generation, data.open_id, data.token, refresh, userId);
       analyticsLoginCompleted(!refresh);
     }

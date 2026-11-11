@@ -1,8 +1,8 @@
 # lgame-api
 
-小游戏通用服务端 API 客户端 SDK。支持微信 / 支付宝 / 抖音 / 快手 / Bilibili / OPPO 小游戏平台及 HarmonyOS NEXT native 适配，提供自定义打点、服务端时间、登录、排行榜、游戏存档、远程配置、邀请任务、支付宝广告奖励与游戏中心事件上报等能力。
+小游戏通用服务端 API 客户端 SDK。支持微信 / 支付宝 / 抖音 / 快手 / Bilibili / OPPO 小游戏平台及 HarmonyOS NEXT、233 APK 原生适配，提供自定义打点、服务端时间、登录、排行榜、游戏存档、远程配置、邀请任务、支付宝广告奖励与游戏中心事件上报等能力。
 
-当前源码版本为1.12.0。打点默认不发送规则版本，由已升级的统计服务端匹配全部启用版本；旧schemaVersion参数保留为废弃兼容项。请先升级统计服务再更新游戏SDK。发布与本地包状态以交接记录为准。版本边界与验证结果见[源码交接记录](./docs/analytics-release-status.md)。
+当前源码版本为 1.13.0。打点默认不发送规则版本，由已升级的统计服务端匹配全部启用版本；旧schemaVersion参数保留为废弃兼容项。请先升级统计服务再更新游戏SDK。发布与本地包状态以交接记录为准。版本边界与验证结果见[源码交接记录](./docs/analytics-release-status.md)。
 
 ## 安装
 
@@ -58,7 +58,7 @@ LGameAPI.init({
 });
 ```
 
-`platformLogin` 的约定：resolve 的对象需包含 `code` 字段（登录凭证），服务端用它换取 openid。OPPO 平台的 `qg.login()` 返回 `res.data.token`，SDK 会把它作为登录凭证发送给服务端。
+`platformLogin` 的约定：小游戏登录结果提供 `code`，服务端用它换取 openid。OPPO 平台的 `qg.login()` 返回 `res.data.token`，SDK 会把它作为登录凭证发送给服务端。233 APK 通过自定义适配返回 `success`、`uid` 和 `sid`。
 
 ## 功能文档
 
@@ -68,6 +68,7 @@ LGameAPI.init({
 - [服务端时间戳](./docs/timestamp.md)
 - [登录](./docs/login.md)
 - [HarmonyOS NEXT 登录与会话隔离（1.8.0）](./docs/harmony-login.md)
+- [233 APK 登录与切号（1.13.0）](./docs/apk233-login.md)
 - [排行榜](./docs/leaderboard.md)
 - [游戏存档](./docs/gamedata.md)
 - [远程配置](./docs/remote-config.md)

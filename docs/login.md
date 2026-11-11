@@ -2,7 +2,7 @@
 
 ## 概述
 
-HarmonyOS NEXT 从 1.8.0 使用 POST 授权码和 gamePlayerId 核验，接入及 `clearSession()`、`SESSION_CHANGED`、并发刷新规则见 [HarmonyOS NEXT 登录与会话](./harmony-login.md)。其他小游戏继续使用下述 GET 协议。
+HarmonyOS NEXT 从 1.8.0 使用 POST 授权码和 gamePlayerId 核验，接入及 `clearSession()`、`SESSION_CHANGED`、并发刷新规则见 [HarmonyOS NEXT 登录与会话](./harmony-login.md)。233 APK 从 1.13.0 使用 POST 传递原生 uid 和 sid，见 [233 APK 登录](./apk233-login.md)。其他小游戏使用下述 GET 协议。
 
 小游戏启动时调用平台登录接口获取临时 `code`，再用 `code` 换取 `openid` 和 JWT 令牌。后续所有接口需携带 JWT 令牌。
 

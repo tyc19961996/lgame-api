@@ -234,3 +234,91 @@ test('旧服务端首次补UID保留旧业务会话，同UID刷新不改变账�
   assert.equal(LGameAPI.userId, 'UserAAAAAAAAAAAA'); assert.equal(requests[3].body.token, 'fresh-token');
   requests[3].respond({ code: 0, data: { saved: true } }); assert.equal((await save).code, 0);
 });
+
+function setupApk233() {
+  setup();
+  LGameAPI.init({ baseUrl: 'https://example.test/api/v1/', appid: '233-app',
+    isDevMode: () => false, getPlatform: () => '233apk', platformLogin: async () => {
+      adapterCalls++; return native ?? { success: true, uid: player, sid: `sid-${player}` };
+    } });
+}
+const okApk233 = (id = player) => ({
+  ...ok(id), data: { open_id: id, token: `jwt-${id}`, user_id: `User-${id}` },
+});
+
+test('233 APK 仅通过 POST JSON 提交原生 uid 和 sid', async () => {
+  setupApk233();
+  native = { success: true, uid: 'A', sid: 'sid+/=', code: '旧兼容字段' };
+  const promise = LGameAPI.login(); await tick();
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].method, 'POST');
+  assert.equal(requests[0].url, 'https://example.test/api/v1/getOpenId');
+  assert.deepEqual(requests[0].body, { platform: '233apk', appid: '233-app', uid: 'A', sid: 'sid+/=' });
+  requests[0].respond(okApk233()); await promise;
+  assert.equal(LGameAPI.userId, 'User-A');
+});
+
+test('233 APK 拒绝无效平台结果、开发登录及缺少内部 UID 的响应', async () => {
+  for (const result of [{ uid: 'A', sid: 'x', code: 'legacy' }, { success: true, uid: 'A', code: 'legacy' },
+    { success: true, uid: 42, sid: 'x' }, { success: false, uid: 'A', sid: 'x' }]) {
+    setupApk233(); native = result;
+    await assert.rejects(LGameAPI.login()); assert.equal(requests.length, 0);
+  }
+  setupApk233();
+  LGameAPI.init({ baseUrl: 'https://example.test/api/v1/', isDevMode: () => true });
+  await assert.rejects(LGameAPI.login()); assert.equal(requests.length, 0); assert.equal(adapterCalls, 0);
+
+  for (const response of [ok('A'), okApk233('other-account')]) {
+    setupApk233(); const login = LGameAPI.login();
+    const rejected = assert.rejects(login); await tick();
+    requests[0].respond(response); await rejected;
+    assert.equal(LGameAPI.isLoggedIn, false);
+  }
+});
+
+test('233 APK 业务请求收到 402 后返回游戏，由用户重新登录', async () => {
+  setupApk233(); const login = LGameAPI.login(); await tick();
+  requests[0].respond(okApk233()); await login;
+  const save = LGameAPI.saveGameData({ game_key: 'demo', data: '存档' });
+  await tick(); requests[1].respond(expired);
+  assert.equal((await save).code, 402);
+  assert.equal(LGameAPI.isLoggedIn, false);
+  assert.equal(requests.length, 2); assert.equal(adapterCalls, 1);
+});
+
+test('233 APK 切号后丢弃旧登录结果', async () => {
+  setupApk233();
+  const first = LGameAPI.login(); const rejected = assert.rejects(first, changed); await tick();
+  LGameAPI.clearSession(); player = 'B';
+  const second = LGameAPI.login(); await tick();
+  requests[1].respond(okApk233('B')); await second;
+  requests[0].respond(okApk233('A')); await rejected;
+  assert.equal(LGameAPI.userId, 'User-B');
+});
+
+
+test('233 APK 不向非回环的 HTTP 地址发送 sid', async () => {
+  setupApk233();
+  LGameAPI.init({ baseUrl: 'http://example.test/api/v1/' });
+  const result = LGameAPI.login().then(() => null, error => error);
+  await tick();
+  if (requests[0]) requests[0].respond(okApk233());
+  assert.match((await result)?.message ?? '', /HTTPS/);
+  assert.equal(adapterCalls, 0);
+  assert.equal(requests.length, 0);
+});
+
+test('233 APK 的旧 402 即使已有同账号新令牌也交给游戏', async () => {
+  setupApk233(); const first = LGameAPI.login(); await tick();
+  requests[0].respond(okApk233()); await first;
+  const saved = LGameAPI.saveGameData({ game_key: 'demo', data: '存档' });
+  await tick();
+  const relogin = LGameAPI.login(); await tick();
+  const renewed = okApk233(); renewed.data.token = 'new-jwt';
+  requests[2].respond(renewed); await relogin;
+  requests[1].respond(expired); await tick();
+  if (requests[3]) requests[3].respond({ code: 0, data: { saved: true } });
+  assert.equal((await saved).code, 402);
+  assert.equal(requests.length, 3);
+  assert.equal(LGameAPI.token, 'new-jwt');
+});
